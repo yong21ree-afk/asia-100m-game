@@ -27,6 +27,7 @@
   var resultMessageEl = document.getElementById("resultMessage");
   var resultTimeEl = document.getElementById("resultTime");
   var restartBtn = document.getElementById("restartBtn");
+  var mainMenuBtn = document.getElementById("mainMenuBtn");
 
   var crowdContainer = document.getElementById("crowd");
 
@@ -46,7 +47,7 @@
   // ---------- Crowd generation ----------
   function buildCrowd() {
     crowdContainer.innerHTML = "";
-    var colors = ["#ffb703", "#f4a261", "#e76f51", "#ffe066", "#8ecae6", "#94d2bd", "#f28482", "#fff3b0"];
+    var colors = ["#00f6ff", "#ff2ea6", "#fff400", "#39ff88", "#7a5cff", "#ff6a00"];
     var count = 90;
     for (var i = 0; i < count; i++) {
       var dot = document.createElement("div");
@@ -237,6 +238,11 @@
   restartBtn.addEventListener("click", function () {
     hideOverlay(resultOverlay);
     startCountdown();
+  });
+  mainMenuBtn.addEventListener("click", function () {
+    hideOverlay(resultOverlay);
+    resetGame();
+    showOverlay(startOverlay);
   });
 
   // ---------- Init ----------

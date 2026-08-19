@@ -4,9 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>아시아 스포츠 페스티벌 - 육상 100m</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="crt-overlay"></div>
   <div class="game-wrap">
 
     <header class="scoreboard">
@@ -88,7 +92,10 @@
       <h2 id="resultTitle">🏆 결과</h2>
       <p id="resultMessage"></p>
       <p class="result-time">완주 시간: <b id="resultTime">0.00</b>초</p>
-      <button id="restartBtn" class="primary-btn">다시 시작</button>
+      <div class="result-btn-row">
+        <button id="restartBtn" class="primary-btn">다시 시작</button>
+        <button id="mainMenuBtn" class="secondary-btn">메인으로 돌아가기</button>
+      </div>
     </div>
   </div>
 
