@@ -115,16 +115,140 @@
       });
     }
 
+    // ---- Main-menu background music: original chiptune riff, procedurally generated ----
+    var BGM_STEP = 0.2;
+    var bgmMelody = [523.25, 659.25, 783.99, 659.25, 523.25, 659.25, 587.33, 523.25];
+    var bgmBassLine = [130.81, 130.81, 196.0, 196.0, 130.81, 130.81, 196.0, 130.81];
+    var bgmIndex = 0;
+    var bgmNextTime = 0;
+    var bgmIntervalId = null;
+    var bgmActive = false;
+
+    function bgmScheduleTick() {
+      var c = getCtx();
+      if (!c) return;
+      while (bgmNextTime < c.currentTime + 0.12) {
+        var i = bgmIndex % bgmMelody.length;
+        var offset = Math.max(0, bgmNextTime - c.currentTime);
+        tone(bgmMelody[i], offset, BGM_STEP * 0.9, { type: "square", gain: 0.07, attack: 0.006 });
+        tone(bgmBassLine[i], offset, BGM_STEP * 0.95, { type: "triangle", gain: 0.06, attack: 0.01 });
+        bgmNextTime += BGM_STEP;
+        bgmIndex++;
+      }
+    }
+
+    function startBgm() {
+      var c = getCtx();
+      if (!c || bgmActive) return;
+      bgmActive = true;
+      bgmIndex = 0;
+      bgmNextTime = c.currentTime + 0.05;
+      bgmIntervalId = setInterval(bgmScheduleTick, 50);
+    }
+
+    function stopBgm() {
+      bgmActive = false;
+      if (bgmIntervalId) {
+        clearInterval(bgmIntervalId);
+        bgmIntervalId = null;
+      }
+    }
+
+    // ---- Gentle crowd-cheering ambience during the race (filtered noise, no samples) ----
+    var crowdNoise = null;
+    var crowdGain = null;
+    var crowdLfo = null;
+    var CROWD_TARGET_GAIN = 0.045;
+
+    function startCrowdAmbience() {
+      var c = getCtx();
+      if (!c) return;
+      stopCrowdAmbience();
+
+      var bufferSize = c.sampleRate * 2;
+      var buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+      var data = buffer.getChannelData(0);
+      for (var i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      var noise = c.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+
+      var filter = c.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 900;
+      filter.Q.value = 0.6;
+
+      var gainNode = c.createGain();
+      var target = muted ? 0.0001 : CROWD_TARGET_GAIN;
+      gainNode.gain.setValueAtTime(0.0001, c.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(target, c.currentTime + 1.1);
+
+      var lfo = c.createOscillator();
+      lfo.type = "sine";
+      lfo.frequency.value = 0.15;
+      var lfoGain = c.createGain();
+      lfoGain.gain.value = 0.015;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gainNode.gain);
+      lfo.start();
+
+      noise.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(c.destination);
+      noise.start();
+
+      crowdNoise = noise;
+      crowdGain = gainNode;
+      crowdLfo = lfo;
+    }
+
+    function stopCrowdAmbience() {
+      var c = getCtx();
+      if (crowdGain && c) {
+        try {
+          crowdGain.gain.cancelScheduledValues(c.currentTime);
+          crowdGain.gain.setValueAtTime(crowdGain.gain.value, c.currentTime);
+          crowdGain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.35);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+      var noiseToStop = crowdNoise;
+      var lfoToStop = crowdLfo;
+      setTimeout(function () {
+        if (noiseToStop) { try { noiseToStop.stop(); } catch (e) { /* ignore */ } }
+        if (lfoToStop) { try { lfoToStop.stop(); } catch (e) { /* ignore */ } }
+      }, 400);
+      crowdNoise = null;
+      crowdGain = null;
+      crowdLfo = null;
+    }
+
     return {
       unlock: unlock,
-      setMuted: function (v) { muted = v; },
+      setMuted: function (v) {
+        muted = v;
+        var c = getCtx();
+        if (crowdGain && c) {
+          var target = v ? 0.0001 : CROWD_TARGET_GAIN;
+          crowdGain.gain.cancelScheduledValues(c.currentTime);
+          crowdGain.gain.setValueAtTime(crowdGain.gain.value, c.currentTime);
+          crowdGain.gain.exponentialRampToValueAtTime(target, c.currentTime + 0.15);
+        }
+      },
       isMuted: function () { return muted; },
       playFoot: playFoot,
       playMiss: playMiss,
       playGunshot: playGunshot,
       playFalseStart: playFalseStart,
       playWinFanfare: playWinFanfare,
-      playLoseFanfare: playLoseFanfare
+      playLoseFanfare: playLoseFanfare,
+      startBgm: startBgm,
+      stopBgm: stopBgm,
+      startCrowdAmbience: startCrowdAmbience,
+      stopCrowdAmbience: stopCrowdAmbience
     };
   })();
 
@@ -178,6 +302,8 @@
       dot.style.left = (Math.random() * 100).toFixed(2) + "%";
       dot.style.top = (Math.random() * 75 + 5).toFixed(2) + "%";
       dot.style.background = colors[Math.floor(Math.random() * colors.length)];
+      dot.style.animationDuration = (0.9 + Math.random() * 1.3).toFixed(2) + "s";
+      dot.style.animationDelay = (Math.random() * 1.5 * -1).toFixed(2) + "s";
       crowdContainer.appendChild(dot);
     }
   }
@@ -227,6 +353,7 @@
     botEl.classList.remove("finished");
     timerEl.textContent = "0.00초";
     hideOverlay(falseStartOverlay);
+    AudioEngine.stopCrowdAmbience();
     render();
   }
 
@@ -238,6 +365,7 @@
   }
 
   function startCountdown() {
+    AudioEngine.stopBgm();
     hideOverlay(startOverlay);
     hideOverlay(resultOverlay);
     hideOverlay(falseStartOverlay);
@@ -285,6 +413,7 @@
     phase = "racing";
     startTime = performance.now();
     lastFrameTime = startTime;
+    AudioEngine.startCrowdAmbience();
     rafId = requestAnimationFrame(loop);
   }
 
@@ -326,6 +455,7 @@
       cancelAnimationFrame(rafId);
       rafId = null;
     }
+    AudioEngine.stopCrowdAmbience();
     playerMeters = Math.min(playerMeters, RACE_DISTANCE);
     botMeters = Math.min(botMeters, RACE_DISTANCE);
     render();
@@ -400,6 +530,7 @@
     hideOverlay(resultOverlay);
     resetGame();
     showOverlay(startOverlay);
+    AudioEngine.startBgm();
   });
   falseStartRetryBtn.addEventListener("click", function () {
     hideOverlay(falseStartOverlay);
@@ -447,4 +578,5 @@
   // ---------- Init ----------
   buildCrowd();
   resetGame();
+  AudioEngine.startBgm();
 })();
