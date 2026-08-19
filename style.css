@@ -64,6 +64,44 @@ html, body {
   opacity: 0.45;
 }
 
+/* ---------- Sound toggle ---------- */
+.sound-toggle-btn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 500;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--neon-yellow);
+  background: var(--bg-panel-2);
+  border: 3px solid #000;
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #000;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 0.06s ease-out, box-shadow 0.06s ease-out;
+}
+
+.sound-toggle-btn:active,
+.sound-toggle-btn.pressed {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 #000;
+}
+
+.sound-toggle-btn.muted {
+  color: #666;
+}
+
+.false-start-title {
+  color: var(--neon-magenta) !important;
+  text-shadow: 0 0 8px var(--neon-magenta) !important;
+}
+
 /* ---------- Scoreboard ---------- */
 .scoreboard {
   background: var(--panel-bg);

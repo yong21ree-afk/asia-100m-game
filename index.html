@@ -11,6 +11,7 @@
 </head>
 <body>
   <div class="crt-overlay"></div>
+  <button id="soundToggleBtn" class="sound-toggle-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
   <div class="game-wrap">
 
     <header class="scoreboard">
@@ -84,6 +85,15 @@
   <!-- Countdown overlay -->
   <div id="countdownOverlay" class="overlay hidden">
     <div class="countdown-number" id="countdownNumber">3</div>
+  </div>
+
+  <!-- False start overlay -->
+  <div id="falseStartOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <h2 class="false-start-title">🚫 부정출발!</h2>
+      <p>총소리가 나기 전에 발을 움직였어요.<br />신호를 기다렸다가 다시 도전하세요.</p>
+      <button id="falseStartRetryBtn" class="primary-btn">다시 도전</button>
+    </div>
   </div>
 
   <!-- Result overlay -->
