@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>아시아 스포츠 페스티벌 - 육상 100m</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="game-wrap">
+
+    <header class="scoreboard">
+      <h1>🏟️ 아시아 스포츠 페스티벌 <span>육상 100m</span></h1>
+      <div class="scoreboard-info">
+        <div class="timer" id="timer">0.00초</div>
+        <div class="distances">
+          <span class="dist player-dist">🔵 나 <b id="playerDist">0</b>m</span>
+          <span class="dist bot-dist">🔴 상대 <b id="botDist">0</b>m</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="stadium">
+      <div class="sky"></div>
+      <div class="crowd" id="crowd"></div>
+
+      <div class="track">
+        <div class="lane lane-player">
+          <div class="lane-label">1</div>
+          <div class="runner player" id="player">
+            <div class="head"></div>
+            <div class="body"></div>
+            <div class="arm arm-left"></div>
+            <div class="arm arm-right"></div>
+            <div class="leg leg-left"></div>
+            <div class="leg leg-right"></div>
+          </div>
+        </div>
+        <div class="lane lane-bot">
+          <div class="lane-label">2</div>
+          <div class="runner bot" id="bot">
+            <div class="head"></div>
+            <div class="body"></div>
+            <div class="arm arm-left"></div>
+            <div class="arm arm-right"></div>
+            <div class="leg leg-left"></div>
+            <div class="leg leg-right"></div>
+          </div>
+        </div>
+        <div class="finish-line">
+          <span>FINISH</span>
+        </div>
+      </div>
+    </main>
+
+    <footer class="controls">
+      <button id="leftFootBtn" class="foot-btn foot-left" type="button">
+        <span class="foot-icon">🦶</span>
+        <span class="foot-text">왼발</span>
+        <span class="key-hint">A</span>
+      </button>
+      <button id="rightFootBtn" class="foot-btn foot-right" type="button">
+        <span class="foot-icon">🦶</span>
+        <span class="foot-text">오른발</span>
+        <span class="key-hint">D</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- Start overlay -->
+  <div id="startOverlay" class="overlay">
+    <div class="overlay-card">
+      <h2>🏃 육상 100m 달리기</h2>
+      <p>왼발/오른발 버튼(또는 키보드 A / D)을 <b>번갈아</b> 눌러서 전력 질주하세요!</p>
+      <p class="tip">같은 발을 연속으로 누르면 조금만 전진해요. 리듬을 타면서 번갈아 눌러야 빨라져요.</p>
+      <button id="startBtn" class="primary-btn">레이스 시작</button>
+    </div>
+  </div>
+
+  <!-- Countdown overlay -->
+  <div id="countdownOverlay" class="overlay hidden">
+    <div class="countdown-number" id="countdownNumber">3</div>
+  </div>
+
+  <!-- Result overlay -->
+  <div id="resultOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <h2 id="resultTitle">🏆 결과</h2>
+      <p id="resultMessage"></p>
+      <p class="result-time">완주 시간: <b id="resultTime">0.00</b>초</p>
+      <button id="restartBtn" class="primary-btn">다시 시작</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
