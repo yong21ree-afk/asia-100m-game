@@ -64,12 +64,18 @@ html, body {
   opacity: 0.45;
 }
 
-/* ---------- Sound toggle ---------- */
-.sound-toggle-btn {
+/* ---------- Top-right controls (sound / language) ---------- */
+.top-right-controls {
   position: fixed;
   top: 10px;
   right: 10px;
   z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.icon-toggle-btn {
   width: 40px;
   height: 40px;
   display: flex;
@@ -87,14 +93,20 @@ html, body {
   transition: transform 0.06s ease-out, box-shadow 0.06s ease-out;
 }
 
-.sound-toggle-btn:active,
-.sound-toggle-btn.pressed {
+.icon-toggle-btn:active,
+.icon-toggle-btn.pressed {
   transform: translate(3px, 3px);
   box-shadow: 0 0 0 #000;
 }
 
-.sound-toggle-btn.muted {
+.icon-toggle-btn.muted {
   color: #666;
+}
+
+.lang-toggle-btn {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  color: var(--neon-cyan);
 }
 
 .false-start-title {

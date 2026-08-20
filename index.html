@@ -11,16 +11,19 @@
 </head>
 <body>
   <div class="crt-overlay"></div>
-  <button id="soundToggleBtn" class="sound-toggle-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
+  <div class="top-right-controls">
+    <button id="soundToggleBtn" class="icon-toggle-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
+    <button id="langToggleBtn" class="icon-toggle-btn lang-toggle-btn" type="button" aria-label="언어 전환">EN</button>
+  </div>
   <div class="game-wrap">
 
     <header class="scoreboard">
-      <h1>🏟️ 아시아 스포츠 페스티벌 <span>육상 100m</span></h1>
+      <h1><span data-i18n="h1Main">🏟️ 아시아 스포츠 페스티벌</span> <span data-i18n="h1Sub">육상 100m</span></h1>
       <div class="scoreboard-info">
         <div class="timer" id="timer">0.00초</div>
         <div class="distances">
-          <span class="dist player-dist">🔵 나 <b id="playerDist">0</b>m</span>
-          <span class="dist bot-dist">🔴 상대 <b id="botDist">0</b>m</span>
+          <span class="dist player-dist"><span data-i18n="labelMe">🔵 나</span> <b id="playerDist">0</b>m</span>
+          <span class="dist bot-dist"><span data-i18n="labelRival">🔴 상대</span> <b id="botDist">0</b>m</span>
         </div>
       </div>
     </header>
@@ -61,12 +64,12 @@
     <footer class="controls">
       <button id="leftFootBtn" class="foot-btn foot-left" type="button">
         <span class="foot-icon">🦶</span>
-        <span class="foot-text">왼발</span>
+        <span class="foot-text" data-i18n="footLeft">왼발</span>
         <span class="key-hint">A</span>
       </button>
       <button id="rightFootBtn" class="foot-btn foot-right" type="button">
         <span class="foot-icon">🦶</span>
-        <span class="foot-text">오른발</span>
+        <span class="foot-text" data-i18n="footRight">오른발</span>
         <span class="key-hint">D</span>
       </button>
     </footer>
@@ -75,10 +78,10 @@
   <!-- Start overlay -->
   <div id="startOverlay" class="overlay">
     <div class="overlay-card">
-      <h2>🏃 육상 100m 달리기</h2>
-      <p>왼발/오른발 버튼(또는 키보드 A / D)을 <b>번갈아</b> 눌러서 전력 질주하세요!</p>
-      <p class="tip">같은 발을 연속으로 누르면 조금만 전진해요. 리듬을 타면서 번갈아 눌러야 빨라져요.</p>
-      <button id="startBtn" class="primary-btn">레이스 시작</button>
+      <h2 data-i18n="startTitle">🏃 육상 100m 달리기</h2>
+      <p data-i18n="startInstruction">왼발/오른발 버튼(또는 키보드 A / D)을 <b>번갈아</b> 눌러서 전력 질주하세요!</p>
+      <p class="tip" data-i18n="startTip">같은 발을 연속으로 누르면 조금만 전진해요. 리듬을 타면서 번갈아 눌러야 빨라져요.</p>
+      <button id="startBtn" class="primary-btn" data-i18n="startBtn">레이스 시작</button>
     </div>
   </div>
 
@@ -90,9 +93,9 @@
   <!-- False start overlay -->
   <div id="falseStartOverlay" class="overlay hidden">
     <div class="overlay-card">
-      <h2 class="false-start-title">🚫 부정출발!</h2>
-      <p>총소리가 나기 전에 발을 움직였어요.<br />신호를 기다렸다가 다시 도전하세요.</p>
-      <button id="falseStartRetryBtn" class="primary-btn">다시 도전</button>
+      <h2 class="false-start-title" data-i18n="falseStartTitle">🚫 부정출발!</h2>
+      <p data-i18n="falseStartMsg">총소리가 나기 전에 발을 움직였어요.<br />신호를 기다렸다가 다시 도전하세요.</p>
+      <button id="falseStartRetryBtn" class="primary-btn" data-i18n="falseStartRetry">다시 도전</button>
     </div>
   </div>
 
@@ -101,10 +104,10 @@
     <div class="overlay-card">
       <h2 id="resultTitle">🏆 결과</h2>
       <p id="resultMessage"></p>
-      <p class="result-time">완주 시간: <b id="resultTime">0.00</b>초</p>
+      <p class="result-time"><span data-i18n="finishTimeLabel">완주 시간:</span> <b id="resultTime">0.00</b><span data-i18n="secondsUnit">초</span></p>
       <div class="result-btn-row">
-        <button id="restartBtn" class="primary-btn">다시 시작</button>
-        <button id="mainMenuBtn" class="secondary-btn">메인으로 돌아가기</button>
+        <button id="restartBtn" class="primary-btn" data-i18n="restartBtn">다시 시작</button>
+        <button id="mainMenuBtn" class="secondary-btn" data-i18n="mainMenuBtn">메인으로 돌아가기</button>
       </div>
     </div>
   </div>

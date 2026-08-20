@@ -273,10 +273,117 @@
   var restartBtn = document.getElementById("restartBtn");
   var mainMenuBtn = document.getElementById("mainMenuBtn");
   var soundToggleBtn = document.getElementById("soundToggleBtn");
+  var langToggleBtn = document.getElementById("langToggleBtn");
   var falseStartOverlay = document.getElementById("falseStartOverlay");
   var falseStartRetryBtn = document.getElementById("falseStartRetryBtn");
 
   var crowdContainer = document.getElementById("crowd");
+
+  // ---------- i18n ----------
+  var LANG_STORAGE_KEY = "asia100m_lang";
+  var I18N = {
+    ko: {
+      docTitle: "아시아 스포츠 페스티벌 - 육상 100m",
+      h1Main: "🏟️ 아시아 스포츠 페스티벌",
+      h1Sub: "육상 100m",
+      labelMe: "🔵 나",
+      labelRival: "🔴 상대",
+      startTitle: "🏃 육상 100m 달리기",
+      startInstruction: "왼발/오른발 버튼(또는 키보드 A / D)을 <b>번갈아</b> 눌러서 전력 질주하세요!",
+      startTip: "같은 발을 연속으로 누르면 조금만 전진해요. 리듬을 타면서 번갈아 눌러야 빨라져요.",
+      startBtn: "레이스 시작",
+      falseStartTitle: "🚫 부정출발!",
+      falseStartMsg: "총소리가 나기 전에 발을 움직였어요.<br />신호를 기다렸다가 다시 도전하세요.",
+      falseStartRetry: "다시 도전",
+      finishTimeLabel: "완주 시간:",
+      secondsUnit: "초",
+      restartBtn: "다시 시작",
+      mainMenuBtn: "메인으로 돌아가기",
+      footLeft: "왼발",
+      footRight: "오른발",
+      soundToggleLabel: "소리 켜기/끄기",
+      langToggleLabel: "언어 전환",
+      winTitle: "🏆 승리!",
+      winMsg: "먼저 결승선을 통과했습니다!",
+      loseTitle: "😢 아쉬워요",
+      loseMsg: "상대 선수가 먼저 결승선을 통과했습니다."
+    },
+    en: {
+      docTitle: "Asia Sports Festival - 100m Sprint",
+      h1Main: "🏟️ Asia Sports Festival",
+      h1Sub: "100m Sprint",
+      labelMe: "🔵 Me",
+      labelRival: "🔴 Rival",
+      startTitle: "🏃 100m Sprint",
+      startInstruction: "Tap the Left/Right foot buttons (or press A / D) <b>alternately</b> to sprint full speed!",
+      startTip: "Pressing the same foot twice in a row only moves you a little. Alternate in rhythm to go faster.",
+      startBtn: "Start Race",
+      falseStartTitle: "🚫 False Start!",
+      falseStartMsg: "You moved before the gun went off.<br />Wait for the signal and try again.",
+      falseStartRetry: "Retry",
+      finishTimeLabel: "Finish Time:",
+      secondsUnit: "s",
+      restartBtn: "Restart",
+      mainMenuBtn: "Main Menu",
+      footLeft: "Left",
+      footRight: "Right",
+      soundToggleLabel: "Toggle Sound",
+      langToggleLabel: "Switch Language",
+      winTitle: "🏆 Victory!",
+      winMsg: "You crossed the finish line first!",
+      loseTitle: "😢 So Close",
+      loseMsg: "Your rival crossed the finish line first."
+    }
+  };
+
+  function detectInitialLang() {
+    try {
+      var saved = window.localStorage.getItem(LANG_STORAGE_KEY);
+      if (saved === "ko" || saved === "en") return saved;
+    } catch (e) {
+      /* ignore storage errors */
+    }
+    var nav = (navigator.language || navigator.userLanguage || "en").toLowerCase();
+    return nav.indexOf("ko") === 0 ? "ko" : "en";
+  }
+
+  var currentLang = detectInitialLang();
+  var lastWinner = null;
+  var displayedElapsed = 0;
+
+  function t(key) {
+    var dict = I18N[currentLang] || I18N.en;
+    return dict[key] != null ? dict[key] : key;
+  }
+
+  function applyLanguage(lang) {
+    currentLang = lang === "ko" ? "ko" : "en";
+    document.documentElement.lang = currentLang;
+    document.title = t("docTitle");
+
+    var nodes = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < nodes.length; i++) {
+      var key = nodes[i].getAttribute("data-i18n");
+      nodes[i].innerHTML = t(key);
+    }
+
+    soundToggleBtn.setAttribute("aria-label", t("soundToggleLabel"));
+    langToggleBtn.setAttribute("aria-label", t("langToggleLabel"));
+    langToggleBtn.textContent = currentLang === "ko" ? "EN" : "KO";
+
+    timerEl.textContent = formatTime(displayedElapsed) + t("secondsUnit");
+
+    if (lastWinner) {
+      resultTitleEl.textContent = lastWinner === "player" ? t("winTitle") : t("loseTitle");
+      resultMessageEl.textContent = lastWinner === "player" ? t("winMsg") : t("loseMsg");
+    }
+
+    try {
+      window.localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+    } catch (e) {
+      /* ignore storage errors */
+    }
+  }
 
   // ---------- State ----------
   var phase = "ready"; // ready | countdown | racing | finished | falseStart
@@ -351,7 +458,8 @@
     setRunnerPhase(botEl, null);
     playerEl.classList.remove("finished");
     botEl.classList.remove("finished");
-    timerEl.textContent = "0.00초";
+    displayedElapsed = 0;
+    timerEl.textContent = formatTime(displayedElapsed) + t("secondsUnit");
     hideOverlay(falseStartOverlay);
     AudioEngine.stopCrowdAmbience();
     render();
@@ -433,7 +541,8 @@
     setRunnerPhase(botEl, botPhase);
 
     var elapsed = (now - startTime) / 1000;
-    timerEl.textContent = formatTime(elapsed) + "초";
+    displayedElapsed = elapsed;
+    timerEl.textContent = formatTime(elapsed) + t("secondsUnit");
 
     render();
 
@@ -460,15 +569,16 @@
     botMeters = Math.min(botMeters, RACE_DISTANCE);
     render();
 
+    lastWinner = winner;
     if (winner === "player") {
       playerEl.classList.add("finished");
-      resultTitleEl.textContent = "🏆 승리!";
-      resultMessageEl.textContent = "먼저 결승선을 통과했습니다!";
+      resultTitleEl.textContent = t("winTitle");
+      resultMessageEl.textContent = t("winMsg");
       AudioEngine.playWinFanfare();
     } else {
       botEl.classList.add("finished");
-      resultTitleEl.textContent = "😢 아쉬워요";
-      resultMessageEl.textContent = "상대 선수가 먼저 결승선을 통과했습니다.";
+      resultTitleEl.textContent = t("loseTitle");
+      resultMessageEl.textContent = t("loseMsg");
       AudioEngine.playLoseFanfare();
     }
     resultTimeEl.textContent = formatTime(elapsed);
@@ -537,6 +647,10 @@
     startCountdown();
   });
 
+  langToggleBtn.addEventListener("click", function () {
+    applyLanguage(currentLang === "ko" ? "en" : "ko");
+  });
+
   // ---------- Sound toggle ----------
   var soundMuted = false;
   try {
@@ -576,6 +690,7 @@
   document.addEventListener("keydown", unlockAudioOnce);
 
   // ---------- Init ----------
+  applyLanguage(currentLang);
   buildCrowd();
   resetGame();
   AudioEngine.startBgm();
