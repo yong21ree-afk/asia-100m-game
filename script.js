@@ -248,7 +248,15 @@
       startBgm: startBgm,
       stopBgm: stopBgm,
       startCrowdAmbience: startCrowdAmbience,
-      stopCrowdAmbience: stopCrowdAmbience
+      stopCrowdAmbience: stopCrowdAmbience,
+      suspendContext: function () {
+        var c = getCtx();
+        if (c && c.state === "running") c.suspend();
+      },
+      resumeContext: function () {
+        var c = getCtx();
+        if (c && c.state === "suspended") c.resume();
+      }
     };
   })();
 
@@ -688,6 +696,27 @@
   document.addEventListener("touchstart", unlockAudioOnce, { passive: true });
   document.addEventListener("pointerdown", unlockAudioOnce);
   document.addEventListener("keydown", unlockAudioOnce);
+
+  // ---------- Silence audio when the tab/app is backgrounded or closed ----------
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) {
+      AudioEngine.stopBgm();
+      AudioEngine.stopCrowdAmbience();
+      AudioEngine.suspendContext();
+    } else {
+      AudioEngine.resumeContext();
+      if (phase === "ready") {
+        AudioEngine.startBgm();
+      } else if (phase === "racing") {
+        AudioEngine.startCrowdAmbience();
+      }
+    }
+  });
+  window.addEventListener("pagehide", function () {
+    AudioEngine.stopBgm();
+    AudioEngine.stopCrowdAmbience();
+    AudioEngine.suspendContext();
+  });
 
   // ---------- Init ----------
   applyLanguage(currentLang);
