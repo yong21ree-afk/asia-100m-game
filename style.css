@@ -454,6 +454,10 @@ html, body {
   display: none;
 }
 
+.hidden {
+  display: none;
+}
+
 .overlay-card {
   background: var(--bg-panel-2);
   border: 3px solid var(--accent);
@@ -461,6 +465,8 @@ html, body {
   padding: 26px 22px;
   max-width: 380px;
   width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
   text-align: center;
   box-shadow: 6px 6px 0 #000, 0 0 24px rgba(255, 244, 0, 0.25);
 }
@@ -499,6 +505,118 @@ html, body {
   flex-direction: column;
   gap: 12px;
   margin-top: 14px;
+}
+
+/* ---------- Difficulty selector (start screen) ---------- */
+.difficulty-row {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 4px;
+}
+
+.difficulty-btn {
+  flex: 1 1 33%;
+  padding: 8px 4px;
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  color: #9c86c9;
+  background: var(--bg-black);
+  border: 2px solid var(--neon-cyan-dark);
+  border-radius: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.difficulty-btn.active {
+  color: var(--bg-black);
+  background: var(--neon-cyan);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+
+/* ---------- Combo (in-race) ---------- */
+.combo-display {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  color: var(--neon-yellow);
+  background: rgba(8, 1, 15, 0.75);
+  border: 2px solid var(--neon-yellow);
+  padding: 4px 10px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.combo-popup {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+  color: var(--neon-magenta);
+  text-shadow: 0 0 10px var(--neon-magenta), 2px 2px 0 #000;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.combo-popup.show {
+  animation: comboPopFade 0.9s ease-out;
+}
+
+@keyframes comboPopFade {
+  0% { opacity: 0; transform: translate(-50%, -40%) scale(0.7); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+}
+
+/* ---------- Result screen: medal / personal-best ---------- */
+.medal-badge {
+  display: inline-block;
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  margin: 4px 0 12px;
+  padding: 6px 10px;
+  border: 2px solid var(--neon-yellow);
+}
+
+.medal-gold { color: var(--neon-yellow); text-shadow: 0 0 8px var(--neon-yellow); border-color: var(--neon-yellow); }
+.medal-silver { color: #d9d9f5; text-shadow: 0 0 8px #d9d9f5; border-color: #d9d9f5; }
+.medal-bronze { color: #ff9c4a; text-shadow: 0 0 8px #ff9c4a; border-color: #ff9c4a; }
+.medal-finished { color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); border-color: var(--neon-cyan); }
+
+.new-record-banner {
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  color: var(--neon-green);
+  text-shadow: 0 0 8px var(--neon-green);
+  margin: 0 0 10px;
+  animation: newRecordPulse 1s ease-in-out infinite;
+}
+
+@keyframes newRecordPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.85; }
+}
+
+.best-time-row {
+  font-size: 1rem !important;
+  color: #d8e0f5;
+  margin: 4px 0 !important;
+}
+
+.beat-best-row {
+  font-size: 0.95rem !important;
+  color: #ff9c4a;
+  margin: 4px 0 !important;
 }
 
 .primary-btn,
@@ -546,6 +664,11 @@ html, body {
   .distances { font-size: 1rem; gap: 10px; }
   .foot-btn { font-size: 0.6rem; min-height: 70px; }
   .foot-icon { font-size: 1.1rem; }
+  .combo-display { font-size: 0.5rem; padding: 3px 8px; }
+  .combo-popup { font-size: 0.8rem; }
+  .difficulty-btn { font-size: 0.45rem; padding: 7px 2px; }
+  .medal-badge { font-size: 0.6rem; }
+  .new-record-banner { font-size: 0.55rem; }
 }
 
 @media (min-width: 700px) {
@@ -556,6 +679,11 @@ html, body {
 @media (max-height: 480px) {
   .crowd { height: 12%; }
   .foot-btn { min-height: 56px; padding: 8px; }
-  .overlay-card { padding: 18px; }
+  .overlay-card { padding: 16px; }
+  .overlay-card h2 { margin-bottom: 8px; }
+  .overlay-card p { margin: 6px 0; }
+  .difficulty-row { margin: 10px 0 2px; }
+  .medal-badge { margin: 2px 0 8px; }
+  .new-record-banner { margin-bottom: 6px; }
   .countdown-number { font-size: 3rem; }
 }

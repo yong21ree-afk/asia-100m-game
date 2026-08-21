@@ -3,10 +3,18 @@
 
   // ---------- Config ----------
   var RACE_DISTANCE = 100; // meters
-  var ALT_STEP = 2.5;      // meters gained when alternating feet
-  var SAME_STEP = 0.6;     // meters gained when pressing the same foot twice in a row
-  var BOT_BASE_SPEED = 6.1; // meters per second (base)
+  var ALT_STEP = 1.25;     // meters gained when alternating feet (halved from 2.5 to slow the race down)
+  var SAME_STEP = 0.3;     // meters gained when pressing the same foot twice in a row (halved from 0.6)
   var MAX_LEFT_PERCENT = 90; // runner travels 0% -> 90% of track width
+
+  var DIFFICULTIES = {
+    easy: { speed: 5.0 },
+    normal: { speed: 6.1 },
+    hard: { speed: 7.4 }
+  };
+
+  var MEDAL_THRESHOLDS = { gold: 10.0, silver: 10.5, bronze: 11.0 };
+  var COMBO_MILESTONES = { 3: "comboGood", 5: "comboGreat", 10: "comboAmazing", 20: "comboPerfect" };
 
   // ---------- Audio (Web Audio API, no sound files) ----------
   var AudioEngine = (function () {
@@ -285,6 +293,17 @@
   var falseStartOverlay = document.getElementById("falseStartOverlay");
   var falseStartRetryBtn = document.getElementById("falseStartRetryBtn");
 
+  var difficultyButtons = document.querySelectorAll(".difficulty-btn");
+
+  var comboDisplayEl = document.getElementById("comboDisplay");
+  var comboPopupEl = document.getElementById("comboPopup");
+
+  var medalBadgeEl = document.getElementById("medalBadge");
+  var newRecordBannerEl = document.getElementById("newRecordBanner");
+  var bestTimeRowEl = document.getElementById("bestTimeRow");
+  var bestTimeValueEl = document.getElementById("bestTimeValue");
+  var beatBestRowEl = document.getElementById("beatBestRow");
+
   var crowdContainer = document.getElementById("crowd");
 
   // ---------- i18n ----------
@@ -314,7 +333,22 @@
       winTitle: "🏆 승리!",
       winMsg: "먼저 결승선을 통과했습니다!",
       loseTitle: "😢 아쉬워요",
-      loseMsg: "상대 선수가 먼저 결승선을 통과했습니다."
+      loseMsg: "상대 선수가 먼저 결승선을 통과했습니다.",
+      difficultyEasy: "쉬움",
+      difficultyNormal: "보통",
+      difficultyHard: "어려움",
+      newRecordBanner: "NEW RECORD!",
+      personalBestLabel: "🥇 개인 최고기록:",
+      beatBestTemplate: "최고기록까지 {time}초!",
+      goldMedal: "GOLD MEDAL",
+      silverMedal: "SILVER MEDAL",
+      bronzeMedal: "BRONZE MEDAL",
+      finishedLabel: "완주!",
+      comboLabel: "COMBO",
+      comboGood: "GOOD!",
+      comboGreat: "GREAT!",
+      comboAmazing: "AMAZING!",
+      comboPerfect: "PERFECT!"
     },
     en: {
       docTitle: "Asia Sports Festival - 100m Sprint",
@@ -340,7 +374,22 @@
       winTitle: "🏆 Victory!",
       winMsg: "You crossed the finish line first!",
       loseTitle: "😢 So Close",
-      loseMsg: "Your rival crossed the finish line first."
+      loseMsg: "Your rival crossed the finish line first.",
+      difficultyEasy: "Easy",
+      difficultyNormal: "Normal",
+      difficultyHard: "Hard",
+      newRecordBanner: "NEW RECORD!",
+      personalBestLabel: "🥇 PERSONAL BEST:",
+      beatBestTemplate: "{time}s TO BEAT!",
+      goldMedal: "GOLD MEDAL",
+      silverMedal: "SILVER MEDAL",
+      bronzeMedal: "BRONZE MEDAL",
+      finishedLabel: "FINISHED!",
+      comboLabel: "COMBO",
+      comboGood: "GOOD!",
+      comboGreat: "GREAT!",
+      comboAmazing: "AMAZING!",
+      comboPerfect: "PERFECT!"
     }
   };
 
@@ -384,7 +433,12 @@
     if (lastWinner) {
       resultTitleEl.textContent = lastWinner === "player" ? t("winTitle") : t("loseTitle");
       resultMessageEl.textContent = lastWinner === "player" ? t("winMsg") : t("loseMsg");
+      if (lastWinner === "player") {
+        renderRecordInfo();
+      }
     }
+
+    updateComboDisplay();
 
     try {
       window.localStorage.setItem(LANG_STORAGE_KEY, currentLang);
@@ -398,13 +452,76 @@
   var playerMeters = 0;
   var botMeters = 0;
   var lastFoot = null;
-  var botSpeed = BOT_BASE_SPEED;
+  var botSpeed = DIFFICULTIES.normal.speed;
 
   var startTime = 0;
   var lastFrameTime = 0;
   var rafId = null;
 
   var countdownTimer = null;
+
+  var comboCount = 0;
+  var lastMedalTier = null;
+  var lastIsNewRecord = false;
+  var lastBestTime = null;
+  var lastBeatDiff = null;
+
+  // ---------- Persisted settings (difficulty, personal best) ----------
+  var DIFFICULTY_STORAGE_KEY = "asia100m_difficulty";
+  var BEST_TIME_STORAGE_KEY = "asia100m_best_time";
+
+  function loadDifficulty() {
+    try {
+      var v = window.localStorage.getItem(DIFFICULTY_STORAGE_KEY);
+      if (v === "easy" || v === "normal" || v === "hard") return v;
+    } catch (e) {
+      /* ignore storage errors */
+    }
+    return "normal";
+  }
+
+  function saveDifficulty(v) {
+    try {
+      window.localStorage.setItem(DIFFICULTY_STORAGE_KEY, v);
+    } catch (e) {
+      /* ignore storage errors */
+    }
+  }
+
+  function loadBestTime() {
+    try {
+      var raw = window.localStorage.getItem(BEST_TIME_STORAGE_KEY);
+      if (raw === null) return null;
+      var val = parseFloat(raw);
+      return isFinite(val) ? val : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveBestTime(seconds) {
+    try {
+      window.localStorage.setItem(BEST_TIME_STORAGE_KEY, String(seconds));
+    } catch (e) {
+      /* ignore storage errors */
+    }
+  }
+
+  var selectedDifficulty = loadDifficulty();
+
+  function updateDifficultyButtons() {
+    difficultyButtons.forEach(function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-difficulty") === selectedDifficulty);
+    });
+  }
+
+  difficultyButtons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      selectedDifficulty = btn.getAttribute("data-difficulty");
+      saveDifficulty(selectedDifficulty);
+      updateDifficultyButtons();
+    });
+  });
 
   // ---------- Crowd generation ----------
   function buildCrowd() {
@@ -445,13 +562,87 @@
     return seconds.toFixed(2);
   }
 
+  // ---------- Combo display ----------
+  function updateComboDisplay() {
+    if (comboCount > 0) {
+      comboDisplayEl.textContent = "🔥 " + comboCount + " " + t("comboLabel");
+      showOverlay(comboDisplayEl);
+    } else {
+      hideOverlay(comboDisplayEl);
+    }
+  }
+
+  function showComboPopup(text) {
+    comboPopupEl.textContent = text;
+    comboPopupEl.classList.remove("show");
+    void comboPopupEl.offsetWidth; // force reflow so the animation restarts
+    comboPopupEl.classList.add("show");
+  }
+
+  function checkComboMilestone(count) {
+    var key = COMBO_MILESTONES[count];
+    if (key) showComboPopup(t(key));
+  }
+
+  // ---------- Medal & personal-best record ----------
+  function getMedalTier(elapsed) {
+    if (elapsed <= MEDAL_THRESHOLDS.gold) return "gold";
+    if (elapsed <= MEDAL_THRESHOLDS.silver) return "silver";
+    if (elapsed <= MEDAL_THRESHOLDS.bronze) return "bronze";
+    return "finished";
+  }
+
+  function medalEmoji(tier) {
+    if (tier === "gold") return "🥇";
+    if (tier === "silver") return "🥈";
+    if (tier === "bronze") return "🥉";
+    return "🏁";
+  }
+
+  function medalKey(tier) {
+    if (tier === "gold") return "goldMedal";
+    if (tier === "silver") return "silverMedal";
+    if (tier === "bronze") return "bronzeMedal";
+    return "finishedLabel";
+  }
+
+  function renderRecordInfo() {
+    if (lastMedalTier) {
+      medalBadgeEl.textContent = medalEmoji(lastMedalTier) + " " + t(medalKey(lastMedalTier));
+      medalBadgeEl.className = "medal-badge medal-" + lastMedalTier;
+      showOverlay(medalBadgeEl);
+    } else {
+      hideOverlay(medalBadgeEl);
+    }
+
+    if (lastIsNewRecord) {
+      showOverlay(newRecordBannerEl);
+    } else {
+      hideOverlay(newRecordBannerEl);
+    }
+
+    if (lastBestTime != null) {
+      bestTimeValueEl.textContent = formatTime(lastBestTime);
+      showOverlay(bestTimeRowEl);
+    } else {
+      hideOverlay(bestTimeRowEl);
+    }
+
+    if (!lastIsNewRecord && lastBeatDiff != null) {
+      beatBestRowEl.textContent = t("beatBestTemplate").replace("{time}", formatTime(lastBeatDiff));
+      showOverlay(beatBestRowEl);
+    } else {
+      hideOverlay(beatBestRowEl);
+    }
+  }
+
   // ---------- Game flow ----------
   function resetGame() {
     phase = "ready";
     playerMeters = 0;
     botMeters = 0;
     lastFoot = null;
-    botSpeed = BOT_BASE_SPEED + (Math.random() * 0.6 - 0.3);
+    botSpeed = DIFFICULTIES[selectedDifficulty].speed + (Math.random() * 0.6 - 0.3);
     startTime = 0;
     lastFrameTime = 0;
     if (rafId) {
@@ -470,6 +661,8 @@
     timerEl.textContent = formatTime(displayedElapsed) + t("secondsUnit");
     hideOverlay(falseStartOverlay);
     AudioEngine.stopCrowdAmbience();
+    comboCount = 0;
+    updateComboDisplay();
     render();
   }
 
@@ -583,11 +776,31 @@
       resultTitleEl.textContent = t("winTitle");
       resultMessageEl.textContent = t("winMsg");
       AudioEngine.playWinFanfare();
+
+      lastMedalTier = getMedalTier(elapsed);
+
+      var prevBest = loadBestTime();
+      lastIsNewRecord = prevBest === null || elapsed < prevBest;
+      if (lastIsNewRecord) {
+        saveBestTime(elapsed);
+        lastBestTime = elapsed;
+        lastBeatDiff = null;
+      } else {
+        lastBestTime = prevBest;
+        lastBeatDiff = elapsed - prevBest;
+      }
+      renderRecordInfo();
     } else {
       botEl.classList.add("finished");
       resultTitleEl.textContent = t("loseTitle");
       resultMessageEl.textContent = t("loseMsg");
       AudioEngine.playLoseFanfare();
+
+      lastMedalTier = null;
+      lastIsNewRecord = false;
+      lastBestTime = null;
+      lastBeatDiff = null;
+      renderRecordInfo();
     }
     resultTimeEl.textContent = formatTime(elapsed);
     showOverlay(resultOverlay);
@@ -607,10 +820,14 @@
     playerMeters = Math.min(playerMeters + gain, RACE_DISTANCE);
 
     if (isSameFoot) {
+      comboCount = 0;
       AudioEngine.playMiss();
     } else {
+      comboCount++;
       AudioEngine.playFoot(foot);
+      checkComboMilestone(comboCount);
     }
+    updateComboDisplay();
 
     setRunnerPhase(playerEl, foot);
     render();
@@ -720,6 +937,7 @@
 
   // ---------- Init ----------
   applyLanguage(currentLang);
+  updateDifficultyButtons();
   buildCrowd();
   resetGame();
   AudioEngine.startBgm();

@@ -31,6 +31,8 @@
     <main class="stadium">
       <div class="sky"></div>
       <div class="crowd" id="crowd"></div>
+      <div id="comboDisplay" class="combo-display hidden"></div>
+      <div id="comboPopup" class="combo-popup"></div>
 
       <div class="track">
         <div class="lane lane-player">
@@ -81,6 +83,11 @@
       <h2 data-i18n="startTitle">🏃 육상 100m 달리기</h2>
       <p data-i18n="startInstruction">왼발/오른발 버튼(또는 키보드 A / D)을 <b>번갈아</b> 눌러서 전력 질주하세요!</p>
       <p class="tip" data-i18n="startTip">같은 발을 연속으로 누르면 조금만 전진해요. 리듬을 타면서 번갈아 눌러야 빨라져요.</p>
+      <div class="difficulty-row">
+        <button class="difficulty-btn" type="button" data-difficulty="easy" data-i18n="difficultyEasy">쉬움</button>
+        <button class="difficulty-btn" type="button" data-difficulty="normal" data-i18n="difficultyNormal">보통</button>
+        <button class="difficulty-btn" type="button" data-difficulty="hard" data-i18n="difficultyHard">어려움</button>
+      </div>
       <button id="startBtn" class="primary-btn" data-i18n="startBtn">레이스 시작</button>
     </div>
   </div>
@@ -103,8 +110,12 @@
   <div id="resultOverlay" class="overlay hidden">
     <div class="overlay-card">
       <h2 id="resultTitle">🏆 결과</h2>
+      <div id="medalBadge" class="medal-badge hidden"></div>
+      <div id="newRecordBanner" class="new-record-banner hidden" data-i18n="newRecordBanner">🏆 NEW RECORD!</div>
       <p id="resultMessage"></p>
       <p class="result-time"><span data-i18n="finishTimeLabel">완주 시간:</span> <b id="resultTime">0.00</b><span data-i18n="secondsUnit">초</span></p>
+      <p id="bestTimeRow" class="best-time-row hidden"><span data-i18n="personalBestLabel">🥇 개인 최고기록:</span> <b id="bestTimeValue">0.00</b><span data-i18n="secondsUnit">초</span></p>
+      <p id="beatBestRow" class="beat-best-row hidden"></p>
       <div class="result-btn-row">
         <button id="restartBtn" class="primary-btn" data-i18n="restartBtn">다시 시작</button>
         <button id="mainMenuBtn" class="secondary-btn" data-i18n="mainMenuBtn">메인으로 돌아가기</button>
