@@ -591,7 +591,6 @@ html, body {
 .medal-gold { color: var(--neon-yellow); text-shadow: 0 0 8px var(--neon-yellow); border-color: var(--neon-yellow); }
 .medal-silver { color: #d9d9f5; text-shadow: 0 0 8px #d9d9f5; border-color: #d9d9f5; }
 .medal-bronze { color: #ff9c4a; text-shadow: 0 0 8px #ff9c4a; border-color: #ff9c4a; }
-.medal-finished { color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); border-color: var(--neon-cyan); }
 
 .new-record-banner {
   font-family: var(--font-pixel);
@@ -617,6 +616,53 @@ html, body {
   font-size: 0.95rem !important;
   color: #ff9c4a;
   margin: 4px 0 !important;
+}
+
+.next-goal-row {
+  font-size: 1rem !important;
+  color: var(--neon-green);
+  margin: 4px 0 !important;
+}
+
+.daily-challenge-badge {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  color: var(--neon-magenta);
+  text-shadow: 0 0 8px var(--neon-magenta);
+  border: 2px solid var(--neon-magenta);
+  padding: 5px 8px;
+  margin: 0 0 10px;
+  display: inline-block;
+}
+
+/* ---------- Daily challenge box (start screen) ---------- */
+.daily-challenge-box {
+  border: 2px solid var(--neon-magenta);
+  background: rgba(255, 46, 166, 0.08);
+  padding: 8px 10px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.daily-challenge-title {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  color: var(--neon-magenta);
+  text-shadow: 0 0 6px var(--neon-magenta);
+  margin-bottom: 4px;
+}
+
+.daily-challenge-text {
+  font-family: var(--font-retro);
+  font-size: 1.05rem;
+  color: #f2d9ee;
+}
+
+/* ---------- Big, prominent restart button ---------- */
+.primary-btn.big-restart-btn {
+  font-size: 0.95rem;
+  padding: 18px 28px;
+  box-shadow: 5px 5px 0 #000, 0 0 16px rgba(255, 244, 0, 0.4);
 }
 
 .primary-btn,
@@ -669,6 +715,10 @@ html, body {
   .difficulty-btn { font-size: 0.45rem; padding: 7px 2px; }
   .medal-badge { font-size: 0.6rem; }
   .new-record-banner { font-size: 0.55rem; }
+  .daily-challenge-title { font-size: 0.45rem; }
+  .daily-challenge-text { font-size: 0.9rem; }
+  .daily-challenge-badge { font-size: 0.5rem; }
+  .primary-btn.big-restart-btn { font-size: 0.75rem; padding: 15px 20px; }
 }
 
 @media (min-width: 700px) {
@@ -685,5 +735,7 @@ html, body {
   .difficulty-row { margin: 10px 0 2px; }
   .medal-badge { margin: 2px 0 8px; }
   .new-record-banner { margin-bottom: 6px; }
+  .daily-challenge-box { padding: 6px 8px; margin-bottom: 8px; }
+  .primary-btn.big-restart-btn { padding: 12px 24px; }
   .countdown-number { font-size: 3rem; }
 }

@@ -13,8 +13,11 @@
     hard: { speed: 7.4 }
   };
 
-  var MEDAL_THRESHOLDS = { gold: 10.0, silver: 10.5, bronze: 11.0 };
+  var MEDAL_THRESHOLDS = { gold: 10.0, silver: 11.0 }; // < gold = GOLD, < silver = SILVER, else BRONZE
   var COMBO_MILESTONES = { 3: "comboGood", 5: "comboGreat", 10: "comboAmazing", 20: "comboPerfect" };
+  var NEXT_GOAL_MARGIN = 0.2; // seconds faster than personal best
+  var DAILY_CHALLENGE_MIN = 9.8;
+  var DAILY_CHALLENGE_MAX = 10.8;
 
   // ---------- Audio (Web Audio API, no sound files) ----------
   var AudioEngine = (function () {
@@ -303,6 +306,10 @@
   var bestTimeRowEl = document.getElementById("bestTimeRow");
   var bestTimeValueEl = document.getElementById("bestTimeValue");
   var beatBestRowEl = document.getElementById("beatBestRow");
+  var nextGoalRowEl = document.getElementById("nextGoalRow");
+  var nextGoalValueEl = document.getElementById("nextGoalValue");
+  var dailyChallengeBadgeEl = document.getElementById("dailyChallengeBadge");
+  var dailyChallengeTextEl = document.getElementById("dailyChallengeText");
 
   var crowdContainer = document.getElementById("crowd");
 
@@ -324,7 +331,7 @@
       falseStartRetry: "다시 도전",
       finishTimeLabel: "완주 시간:",
       secondsUnit: "초",
-      restartBtn: "다시 시작",
+      restartBtn: "다시 달리기",
       mainMenuBtn: "메인으로 돌아가기",
       footLeft: "왼발",
       footRight: "오른발",
@@ -337,13 +344,16 @@
       difficultyEasy: "쉬움",
       difficultyNormal: "보통",
       difficultyHard: "어려움",
-      newRecordBanner: "NEW RECORD!",
+      newRecordBanner: "🏆 최고기록 경신!",
       personalBestLabel: "🥇 개인 최고기록:",
       beatBestTemplate: "최고기록까지 {time}초!",
+      nextGoalLabel: "🎯 다음 목표:",
       goldMedal: "GOLD MEDAL",
       silverMedal: "SILVER MEDAL",
       bronzeMedal: "BRONZE MEDAL",
-      finishedLabel: "완주!",
+      dailyChallengeTitle: "🎯 오늘의 챌린지",
+      dailyChallengeGoalTemplate: "목표 기록: {time}초 이내",
+      dailyChallengeSuccess: "🎯 오늘의 챌린지 성공!",
       comboLabel: "COMBO",
       comboGood: "GOOD!",
       comboGreat: "GREAT!",
@@ -365,7 +375,7 @@
       falseStartRetry: "Retry",
       finishTimeLabel: "Finish Time:",
       secondsUnit: "s",
-      restartBtn: "Restart",
+      restartBtn: "Run Again",
       mainMenuBtn: "Main Menu",
       footLeft: "Left",
       footRight: "Right",
@@ -378,13 +388,16 @@
       difficultyEasy: "Easy",
       difficultyNormal: "Normal",
       difficultyHard: "Hard",
-      newRecordBanner: "NEW RECORD!",
+      newRecordBanner: "🏆 NEW RECORD!",
       personalBestLabel: "🥇 PERSONAL BEST:",
       beatBestTemplate: "{time}s TO BEAT!",
+      nextGoalLabel: "🎯 Next Goal:",
       goldMedal: "GOLD MEDAL",
       silverMedal: "SILVER MEDAL",
       bronzeMedal: "BRONZE MEDAL",
-      finishedLabel: "FINISHED!",
+      dailyChallengeTitle: "🎯 Today's Challenge",
+      dailyChallengeGoalTemplate: "Beat {time}s",
+      dailyChallengeSuccess: "🎯 Today's Challenge Complete!",
       comboLabel: "COMBO",
       comboGood: "GOOD!",
       comboGreat: "GREAT!",
@@ -439,6 +452,7 @@
     }
 
     updateComboDisplay();
+    renderDailyChallengeBox();
 
     try {
       window.localStorage.setItem(LANG_STORAGE_KEY, currentLang);
@@ -465,6 +479,7 @@
   var lastIsNewRecord = false;
   var lastBestTime = null;
   var lastBeatDiff = null;
+  var lastDailyChallengeSuccess = false;
 
   // ---------- Persisted settings (difficulty, personal best) ----------
   var DIFFICULTY_STORAGE_KEY = "asia100m_difficulty";
@@ -586,24 +601,37 @@
 
   // ---------- Medal & personal-best record ----------
   function getMedalTier(elapsed) {
-    if (elapsed <= MEDAL_THRESHOLDS.gold) return "gold";
-    if (elapsed <= MEDAL_THRESHOLDS.silver) return "silver";
-    if (elapsed <= MEDAL_THRESHOLDS.bronze) return "bronze";
-    return "finished";
+    if (elapsed < MEDAL_THRESHOLDS.gold) return "gold";
+    if (elapsed < MEDAL_THRESHOLDS.silver) return "silver";
+    return "bronze";
   }
 
   function medalEmoji(tier) {
     if (tier === "gold") return "🥇";
     if (tier === "silver") return "🥈";
-    if (tier === "bronze") return "🥉";
-    return "🏁";
+    return "🥉";
   }
 
   function medalKey(tier) {
     if (tier === "gold") return "goldMedal";
     if (tier === "silver") return "silverMedal";
-    if (tier === "bronze") return "bronzeMedal";
-    return "finishedLabel";
+    return "bronzeMedal";
+  }
+
+  // ---------- Daily challenge: deterministic target from today's date ----------
+  function computeDailyChallengeTarget() {
+    var now = new Date();
+    var seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    var x = Math.sin(seed) * 10000;
+    var frac = x - Math.floor(x);
+    var target = DAILY_CHALLENGE_MIN + frac * (DAILY_CHALLENGE_MAX - DAILY_CHALLENGE_MIN);
+    return Math.round(target * 100) / 100;
+  }
+
+  var dailyChallengeTarget = computeDailyChallengeTarget();
+
+  function renderDailyChallengeBox() {
+    dailyChallengeTextEl.textContent = t("dailyChallengeGoalTemplate").replace("{time}", formatTime(dailyChallengeTarget));
   }
 
   function renderRecordInfo() {
@@ -633,6 +661,20 @@
       showOverlay(beatBestRowEl);
     } else {
       hideOverlay(beatBestRowEl);
+    }
+
+    if (lastBestTime != null) {
+      var nextGoal = Math.max(0, lastBestTime - NEXT_GOAL_MARGIN);
+      nextGoalValueEl.textContent = formatTime(nextGoal);
+      showOverlay(nextGoalRowEl);
+    } else {
+      hideOverlay(nextGoalRowEl);
+    }
+
+    if (lastWinner === "player" && lastDailyChallengeSuccess) {
+      showOverlay(dailyChallengeBadgeEl);
+    } else {
+      hideOverlay(dailyChallengeBadgeEl);
     }
   }
 
@@ -778,6 +820,7 @@
       AudioEngine.playWinFanfare();
 
       lastMedalTier = getMedalTier(elapsed);
+      lastDailyChallengeSuccess = elapsed <= dailyChallengeTarget;
 
       var prevBest = loadBestTime();
       lastIsNewRecord = prevBest === null || elapsed < prevBest;
@@ -800,6 +843,7 @@
       lastIsNewRecord = false;
       lastBestTime = null;
       lastBeatDiff = null;
+      lastDailyChallengeSuccess = false;
       renderRecordInfo();
     }
     resultTimeEl.textContent = formatTime(elapsed);
