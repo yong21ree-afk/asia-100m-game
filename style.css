@@ -231,7 +231,7 @@ html, body {
 
 .lane {
   position: relative;
-  height: 33.333%;
+  height: 50%;
   border-bottom: 3px dashed var(--neon-cyan-dark);
 }
 
@@ -325,7 +325,11 @@ html, body {
 
 .runner.player .body { background: var(--player-color); box-shadow: 0 0 8px var(--player-color); }
 .runner.bot .body { background: var(--bot-color); box-shadow: 0 0 8px var(--bot-color); }
-.runner.ghost { opacity: 0.5; }
+.runner.ghost {
+  opacity: 0.5;
+  bottom: calc(8% + 22px);
+  z-index: 4;
+}
 .runner.ghost .head { background: #e6e6f5; border-color: #9c9cc9; }
 .runner.ghost .body { background: #cfcfff; box-shadow: 0 0 8px #cfcfff; border-color: #9c9cc9; }
 
@@ -787,5 +791,4 @@ html, body {
   .rival-box { padding: 6px 8px; margin-bottom: 8px; }
   .primary-btn.big-restart-btn { padding: 12px 24px; }
   .countdown-number { font-size: 3rem; }
-  .runner { transform: scale(0.72); transform-origin: 50% 100%; }
 }
