@@ -516,6 +516,12 @@ html, body {
   margin-top: 14px;
 }
 
+.result-detail-group {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 2px dashed var(--neon-cyan-dark);
+}
+
 /* ---------- Difficulty selector (start screen) ---------- */
 .difficulty-row {
   display: flex;
