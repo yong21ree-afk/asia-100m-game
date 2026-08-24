@@ -57,6 +57,17 @@
             <div class="leg leg-right"></div>
           </div>
         </div>
+        <div class="lane lane-ghost">
+          <div class="lane-label">3</div>
+          <div class="runner ghost hidden" id="ghost">
+            <div class="head"></div>
+            <div class="body"></div>
+            <div class="arm arm-left"></div>
+            <div class="arm arm-right"></div>
+            <div class="leg leg-left"></div>
+            <div class="leg leg-right"></div>
+          </div>
+        </div>
         <div class="finish-line">
           <span>FINISH</span>
         </div>
@@ -83,6 +94,10 @@
       <div class="daily-challenge-box">
         <div class="daily-challenge-title" data-i18n="dailyChallengeTitle">🎯 오늘의 챌린지</div>
         <div id="dailyChallengeText" class="daily-challenge-text"></div>
+      </div>
+      <div class="rival-box">
+        <div class="rival-box-title" data-i18n="rivalBoxTitle">🏁 오늘의 라이벌</div>
+        <div id="rivalBoxText" class="rival-box-text"></div>
       </div>
       <h2 data-i18n="startTitle">🏃 육상 100m 달리기</h2>
       <p data-i18n="startInstruction">왼발/오른발 버튼(또는 키보드 A / D)을 <b>번갈아</b> 눌러서 전력 질주하세요!</p>
@@ -122,6 +137,8 @@
       <p id="bestTimeRow" class="best-time-row hidden"><span data-i18n="personalBestLabel">🥇 개인 최고기록:</span> <b id="bestTimeValue">0.00</b><span data-i18n="secondsUnit">초</span></p>
       <p id="nextGoalRow" class="next-goal-row hidden"><span data-i18n="nextGoalLabel">🎯 다음 목표:</span> <b id="nextGoalValue">0.00</b><span data-i18n="secondsUnit">초</span></p>
       <p id="beatBestRow" class="beat-best-row hidden"></p>
+      <p id="rivalResultRow" class="rival-result-row hidden"></p>
+      <div id="ghostBeatBadge" class="ghost-beat-badge hidden" data-i18n="ghostBeatBadge">👻 내 자신을 이겼습니다!</div>
       <div class="result-btn-row">
         <button id="restartBtn" class="primary-btn big-restart-btn" data-i18n="restartBtn">다시 달리기</button>
         <button id="mainMenuBtn" class="secondary-btn" data-i18n="mainMenuBtn">메인으로 돌아가기</button>

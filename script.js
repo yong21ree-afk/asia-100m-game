@@ -7,17 +7,47 @@
   var SAME_STEP = 0.3;     // meters gained when pressing the same foot twice in a row (halved from 0.6)
   var MAX_LEFT_PERCENT = 90; // runner travels 0% -> 90% of track width
 
-  var DIFFICULTIES = {
-    easy: { speed: 5.0 },
-    normal: { speed: 6.1 },
-    hard: { speed: 7.4 }
-  };
-
   var MEDAL_THRESHOLDS = { gold: 10.0, silver: 11.0 }; // < gold = GOLD, < silver = SILVER, else BRONZE
   var COMBO_MILESTONES = { 3: "comboGood", 5: "comboGreat", 10: "comboAmazing", 20: "comboPerfect" };
   var NEXT_GOAL_MARGIN = 0.2; // seconds faster than personal best
   var DAILY_CHALLENGE_MIN = 9.8;
   var DAILY_CHALLENGE_MAX = 10.8;
+
+  // ---------- Rivals: a fixed roster, one picked deterministically per day ----------
+  var RIVALS = [
+    { flag: "🇯🇵", name: "TANAKA", record: 10.31 },
+    { flag: "🇺🇸", name: "JOHNSON", record: 9.98 },
+    { flag: "🇰🇷", name: "MINJUN", record: 10.55 },
+    { flag: "🇯🇲", name: "CAMPBELL", record: 9.85 },
+    { flag: "🇬🇧", name: "SMITH", record: 10.72 },
+    { flag: "🇧🇷", name: "SILVA", record: 10.18 }
+  ];
+
+  function seededFraction(seed) {
+    var x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }
+
+  function todaySeedBase() {
+    var now = new Date();
+    return now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  }
+
+  function computeDailyRival() {
+    var idx = Math.floor(seededFraction(todaySeedBase() + 777) * RIVALS.length) % RIVALS.length;
+    return RIVALS[idx];
+  }
+
+  var dailyRival = computeDailyRival();
+  var rivalPaceSpeed = RACE_DISTANCE / dailyRival.record;
+
+  // Bot speed is anchored to today's rival: Normal races at the rival's exact pace,
+  // Easy/Hard scale relative to it so the difficulty picker still means something.
+  var DIFFICULTIES = {
+    easy: { speed: rivalPaceSpeed * 0.82 },
+    normal: { speed: rivalPaceSpeed },
+    hard: { speed: rivalPaceSpeed * 1.18 }
+  };
 
   // ---------- Audio (Web Audio API, no sound files) ----------
   var AudioEngine = (function () {
@@ -274,6 +304,7 @@
   // ---------- DOM ----------
   var playerEl = document.getElementById("player");
   var botEl = document.getElementById("bot");
+  var ghostEl = document.getElementById("ghost");
   var timerEl = document.getElementById("timer");
   var playerDistEl = document.getElementById("playerDist");
   var botDistEl = document.getElementById("botDist");
@@ -310,6 +341,10 @@
   var nextGoalValueEl = document.getElementById("nextGoalValue");
   var dailyChallengeBadgeEl = document.getElementById("dailyChallengeBadge");
   var dailyChallengeTextEl = document.getElementById("dailyChallengeText");
+
+  var rivalBoxTextEl = document.getElementById("rivalBoxText");
+  var rivalResultRowEl = document.getElementById("rivalResultRow");
+  var ghostBeatBadgeEl = document.getElementById("ghostBeatBadge");
 
   var crowdContainer = document.getElementById("crowd");
 
@@ -354,6 +389,11 @@
       dailyChallengeTitle: "🎯 오늘의 챌린지",
       dailyChallengeGoalTemplate: "목표 기록: {time}초 이내",
       dailyChallengeSuccess: "🎯 오늘의 챌린지 성공!",
+      rivalBoxTitle: "🏁 오늘의 라이벌",
+      rivalBoxTemplate: "{flag} {name} {time}초",
+      rivalResultWinTemplate: "🆚 {name} 라이벌전: 승리!",
+      rivalResultLoseTemplate: "🆚 {name} 라이벌전: 석패, 다음엔 이겨봐요",
+      ghostBeatBadge: "👻 내 자신을 이겼습니다!",
       comboLabel: "COMBO",
       comboGood: "GOOD!",
       comboGreat: "GREAT!",
@@ -398,6 +438,11 @@
       dailyChallengeTitle: "🎯 Today's Challenge",
       dailyChallengeGoalTemplate: "Beat {time}s",
       dailyChallengeSuccess: "🎯 Today's Challenge Complete!",
+      rivalBoxTitle: "🏁 Today's Rival",
+      rivalBoxTemplate: "{flag} {name} {time}s",
+      rivalResultWinTemplate: "🆚 vs {name}: Victory!",
+      rivalResultLoseTemplate: "🆚 vs {name}: So Close — Beat Them Next Time!",
+      ghostBeatBadge: "👻 You Beat Your Own Ghost!",
       comboLabel: "COMBO",
       comboGood: "GOOD!",
       comboGreat: "GREAT!",
@@ -453,6 +498,7 @@
 
     updateComboDisplay();
     renderDailyChallengeBox();
+    renderRivalBox();
 
     try {
       window.localStorage.setItem(LANG_STORAGE_KEY, currentLang);
@@ -480,10 +526,16 @@
   var lastBestTime = null;
   var lastBeatDiff = null;
   var lastDailyChallengeSuccess = false;
+  var lastRivalBeaten = false;
+  var lastBeatGhost = false;
 
-  // ---------- Persisted settings (difficulty, personal best) ----------
+  var ghostRecordBuffer = [];
+  var hadGhostThisRun = false;
+
+  // ---------- Persisted settings (difficulty, personal best, ghost) ----------
   var DIFFICULTY_STORAGE_KEY = "asia100m_difficulty";
   var BEST_TIME_STORAGE_KEY = "asia100m_best_time";
+  var GHOST_TRACE_STORAGE_KEY = "asia100m_ghost_trace";
 
   function loadDifficulty() {
     try {
@@ -521,6 +573,27 @@
       /* ignore storage errors */
     }
   }
+
+  function loadGhostTrace() {
+    try {
+      var raw = window.localStorage.getItem(GHOST_TRACE_STORAGE_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) && parsed.length > 1 ? parsed : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveGhostTrace(trace) {
+    try {
+      window.localStorage.setItem(GHOST_TRACE_STORAGE_KEY, JSON.stringify(trace));
+    } catch (e) {
+      /* ignore storage errors */
+    }
+  }
+
+  var ghostTrace = loadGhostTrace();
 
   var selectedDifficulty = loadDifficulty();
 
@@ -634,6 +707,32 @@
     dailyChallengeTextEl.textContent = t("dailyChallengeGoalTemplate").replace("{time}", formatTime(dailyChallengeTarget));
   }
 
+  // ---------- Rival ----------
+  function renderRivalBox() {
+    rivalBoxTextEl.textContent = t("rivalBoxTemplate")
+      .replace("{flag}", dailyRival.flag)
+      .replace("{name}", dailyRival.name)
+      .replace("{time}", formatTime(dailyRival.record));
+  }
+
+  // ---------- Ghost: replay of the run that set the current personal best ----------
+  function getGhostMetersAtTime(elapsed) {
+    if (!ghostTrace || ghostTrace.length < 2) return null;
+    if (elapsed <= ghostTrace[0][0]) return ghostTrace[0][1];
+    var last = ghostTrace[ghostTrace.length - 1];
+    if (elapsed >= last[0]) return RACE_DISTANCE;
+    for (var i = 1; i < ghostTrace.length; i++) {
+      var prev = ghostTrace[i - 1];
+      var next = ghostTrace[i];
+      if (elapsed <= next[0]) {
+        var span = next[0] - prev[0];
+        var ratio = span > 0 ? (elapsed - prev[0]) / span : 0;
+        return prev[1] + (next[1] - prev[1]) * ratio;
+      }
+    }
+    return RACE_DISTANCE;
+  }
+
   function renderRecordInfo() {
     if (lastMedalTier) {
       medalBadgeEl.textContent = medalEmoji(lastMedalTier) + " " + t(medalKey(lastMedalTier));
@@ -676,6 +775,20 @@
     } else {
       hideOverlay(dailyChallengeBadgeEl);
     }
+
+    if (lastWinner === "player") {
+      var template = lastRivalBeaten ? t("rivalResultWinTemplate") : t("rivalResultLoseTemplate");
+      rivalResultRowEl.textContent = template.replace("{name}", dailyRival.name);
+      showOverlay(rivalResultRowEl);
+    } else {
+      hideOverlay(rivalResultRowEl);
+    }
+
+    if (lastWinner === "player" && lastBeatGhost) {
+      showOverlay(ghostBeatBadgeEl);
+    } else {
+      hideOverlay(ghostBeatBadgeEl);
+    }
   }
 
   // ---------- Game flow ----------
@@ -697,14 +810,26 @@
     }
     setRunnerPhase(playerEl, null);
     setRunnerPhase(botEl, null);
+    setRunnerPhase(ghostEl, null);
     playerEl.classList.remove("finished");
     botEl.classList.remove("finished");
+    ghostEl.classList.remove("finished");
     displayedElapsed = 0;
     timerEl.textContent = formatTime(displayedElapsed) + t("secondsUnit");
     hideOverlay(falseStartOverlay);
     AudioEngine.stopCrowdAmbience();
     comboCount = 0;
     updateComboDisplay();
+
+    ghostRecordBuffer = [[0, 0]];
+    hadGhostThisRun = !!ghostTrace;
+    if (hadGhostThisRun) {
+      showOverlay(ghostEl);
+      setRunnerPosition(ghostEl, 0);
+    } else {
+      hideOverlay(ghostEl);
+    }
+
     render();
   }
 
@@ -787,6 +912,17 @@
     displayedElapsed = elapsed;
     timerEl.textContent = formatTime(elapsed) + t("secondsUnit");
 
+    ghostRecordBuffer.push([elapsed, playerMeters]);
+
+    if (hadGhostThisRun) {
+      var ghostMeters = getGhostMetersAtTime(elapsed);
+      if (ghostMeters != null) {
+        setRunnerPosition(ghostEl, ghostMeters);
+        var ghostPhase = Math.floor(now / 140) % 2 === 0 ? "right" : "left";
+        setRunnerPhase(ghostEl, ghostPhase);
+      }
+    }
+
     render();
 
     if (playerMeters >= RACE_DISTANCE) {
@@ -821,13 +957,17 @@
 
       lastMedalTier = getMedalTier(elapsed);
       lastDailyChallengeSuccess = elapsed <= dailyChallengeTarget;
+      lastRivalBeaten = elapsed <= dailyRival.record;
 
       var prevBest = loadBestTime();
       lastIsNewRecord = prevBest === null || elapsed < prevBest;
+      lastBeatGhost = hadGhostThisRun && lastIsNewRecord;
       if (lastIsNewRecord) {
         saveBestTime(elapsed);
         lastBestTime = elapsed;
         lastBeatDiff = null;
+        ghostTrace = ghostRecordBuffer.slice();
+        saveGhostTrace(ghostTrace);
       } else {
         lastBestTime = prevBest;
         lastBeatDiff = elapsed - prevBest;
@@ -844,6 +984,8 @@
       lastBestTime = null;
       lastBeatDiff = null;
       lastDailyChallengeSuccess = false;
+      lastRivalBeaten = false;
+      lastBeatGhost = false;
       renderRecordInfo();
     }
     resultTimeEl.textContent = formatTime(elapsed);

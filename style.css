@@ -231,7 +231,7 @@ html, body {
 
 .lane {
   position: relative;
-  height: 50%;
+  height: 33.333%;
   border-bottom: 3px dashed var(--neon-cyan-dark);
 }
 
@@ -325,6 +325,9 @@ html, body {
 
 .runner.player .body { background: var(--player-color); box-shadow: 0 0 8px var(--player-color); }
 .runner.bot .body { background: var(--bot-color); box-shadow: 0 0 8px var(--bot-color); }
+.runner.ghost { opacity: 0.5; }
+.runner.ghost .head { background: #e6e6f5; border-color: #9c9cc9; }
+.runner.ghost .body { background: #cfcfff; box-shadow: 0 0 8px #cfcfff; border-color: #9c9cc9; }
 
 .runner .leg {
   position: absolute;
@@ -340,6 +343,7 @@ html, body {
 
 .runner.player .leg { background: var(--player-dark); }
 .runner.bot .leg { background: var(--bot-dark); }
+.runner.ghost .leg { background: #8f8fc9; border-color: #9c9cc9; }
 
 .runner .leg-left { left: 9px; }
 .runner .leg-right { left: 22px; }
@@ -358,6 +362,7 @@ html, body {
 
 .runner.player .arm { background: #ffcf8f; }
 .runner.bot .arm { background: #ffcf8f; }
+.runner.ghost .arm { background: #e6e6f5; border-color: #9c9cc9; }
 
 .runner .arm-left { left: 2px; }
 .runner .arm-right { left: 30px; }
@@ -658,6 +663,46 @@ html, body {
   color: #f2d9ee;
 }
 
+/* ---------- Rival box (start screen) ---------- */
+.rival-box {
+  border: 2px solid var(--neon-cyan);
+  background: rgba(0, 246, 255, 0.08);
+  padding: 8px 10px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.rival-box-title {
+  font-family: var(--font-pixel);
+  font-size: 0.55rem;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 6px var(--neon-cyan);
+  margin-bottom: 4px;
+}
+
+.rival-box-text {
+  font-family: var(--font-retro);
+  font-size: 1.05rem;
+  color: #d9f6ff;
+}
+
+.rival-result-row {
+  font-size: 1rem !important;
+  color: var(--neon-cyan);
+  margin: 4px 0 !important;
+}
+
+.ghost-beat-badge {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  color: #cfcfff;
+  text-shadow: 0 0 8px #cfcfff;
+  border: 2px solid #cfcfff;
+  padding: 5px 8px;
+  margin: 0 0 10px;
+  display: inline-block;
+}
+
 /* ---------- Big, prominent restart button ---------- */
 .primary-btn.big-restart-btn {
   font-size: 0.95rem;
@@ -718,6 +763,9 @@ html, body {
   .daily-challenge-title { font-size: 0.45rem; }
   .daily-challenge-text { font-size: 0.9rem; }
   .daily-challenge-badge { font-size: 0.5rem; }
+  .rival-box-title { font-size: 0.45rem; }
+  .rival-box-text { font-size: 0.9rem; }
+  .ghost-beat-badge { font-size: 0.5rem; }
   .primary-btn.big-restart-btn { font-size: 0.75rem; padding: 15px 20px; }
 }
 
@@ -736,6 +784,8 @@ html, body {
   .medal-badge { margin: 2px 0 8px; }
   .new-record-banner { margin-bottom: 6px; }
   .daily-challenge-box { padding: 6px 8px; margin-bottom: 8px; }
+  .rival-box { padding: 6px 8px; margin-bottom: 8px; }
   .primary-btn.big-restart-btn { padding: 12px 24px; }
   .countdown-number { font-size: 3rem; }
+  .runner { transform: scale(0.72); transform-origin: 50% 100%; }
 }
