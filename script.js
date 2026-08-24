@@ -8,7 +8,7 @@
   var MAX_LEFT_PERCENT = 90; // runner travels 0% -> 90% of track width
 
   var MEDAL_THRESHOLDS = { gold: 10.0, silver: 11.0 }; // < gold = GOLD, < silver = SILVER, else BRONZE
-  var COMBO_MILESTONES = { 3: "comboGood", 5: "comboGreat", 10: "comboAmazing", 20: "comboPerfect" };
+  var COMBO_MILESTONES = { 5: "comboGreat", 10: "comboOnFire" };
   var NEXT_GOAL_MARGIN = 0.2; // seconds faster than personal best
   var DAILY_CHALLENGE_MIN = 9.8;
   var DAILY_CHALLENGE_MAX = 10.8;
@@ -320,6 +320,7 @@
   var resultTitleEl = document.getElementById("resultTitle");
   var resultMessageEl = document.getElementById("resultMessage");
   var resultTimeEl = document.getElementById("resultTime");
+  var maxComboValueEl = document.getElementById("maxComboValue");
   var restartBtn = document.getElementById("restartBtn");
   var mainMenuBtn = document.getElementById("mainMenuBtn");
   var shareImageBtn = document.getElementById("shareImageBtn");
@@ -397,11 +398,10 @@
       ghostBeatBadge: "👻 내 자신을 이겼습니다!",
       shareImageBtn: "📸 결과 이미지 저장",
       shareCardFinishLabel: "완주 시간",
+      maxComboLabel: "이번 레이스 최고 콤보:",
       comboLabel: "COMBO",
-      comboGood: "GOOD!",
       comboGreat: "GREAT!",
-      comboAmazing: "AMAZING!",
-      comboPerfect: "PERFECT!"
+      comboOnFire: "ON FIRE!"
     },
     en: {
       docTitle: "Asia Sports Festival - 100m Sprint",
@@ -448,11 +448,10 @@
       ghostBeatBadge: "👻 You Beat Your Own Ghost!",
       shareImageBtn: "📸 Save Result Image",
       shareCardFinishLabel: "FINISH TIME",
+      maxComboLabel: "Best Combo This Race:",
       comboLabel: "COMBO",
-      comboGood: "GOOD!",
       comboGreat: "GREAT!",
-      comboAmazing: "AMAZING!",
-      comboPerfect: "PERFECT!"
+      comboOnFire: "ON FIRE!"
     }
   };
 
@@ -526,6 +525,7 @@
   var countdownTimer = null;
 
   var comboCount = 0;
+  var maxCombo = 0;
   var lastMedalTier = null;
   var lastIsNewRecord = false;
   var lastBestTime = null;
@@ -674,7 +674,20 @@
 
   function checkComboMilestone(count) {
     var key = COMBO_MILESTONES[count];
-    if (key) showComboPopup(t(key));
+    if (!key) return;
+    showComboPopup(t(key));
+    if (count === 10) {
+      triggerFireEffect();
+    }
+  }
+
+  function triggerFireEffect() {
+    playerEl.classList.remove("on-fire");
+    void playerEl.offsetWidth; // force reflow so the animation restarts if re-triggered
+    playerEl.classList.add("on-fire");
+    setTimeout(function () {
+      playerEl.classList.remove("on-fire");
+    }, 1200);
   }
 
   // ---------- Medal & personal-best record ----------
@@ -1031,6 +1044,8 @@
     hideOverlay(falseStartOverlay);
     AudioEngine.stopCrowdAmbience();
     comboCount = 0;
+    maxCombo = 0;
+    playerEl.classList.remove("on-fire");
     updateComboDisplay();
 
     ghostRecordBuffer = [[0, 0]];
@@ -1201,6 +1216,7 @@
       renderRecordInfo();
     }
     resultTimeEl.textContent = formatTime(elapsed);
+    maxComboValueEl.textContent = String(maxCombo);
     showOverlay(resultOverlay);
   }
 
@@ -1222,6 +1238,7 @@
       AudioEngine.playMiss();
     } else {
       comboCount++;
+      if (comboCount > maxCombo) maxCombo = comboCount;
       AudioEngine.playFoot(foot);
       checkComboMilestone(comboCount);
     }

@@ -385,6 +385,34 @@ html, body {
   filter: drop-shadow(0 0 8px var(--neon-yellow));
 }
 
+/* ---------- 10-combo fire effect (brief, localized to the player sprite) ---------- */
+.runner.player.on-fire::before,
+.runner.player.on-fire::after {
+  content: "🔥";
+  position: absolute;
+  bottom: -8px;
+  font-size: 15px;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 5;
+  animation: fireFlicker 0.35s ease-in-out infinite alternate;
+}
+
+.runner.player.on-fire::before {
+  left: -6px;
+  animation-delay: 0s;
+}
+
+.runner.player.on-fire::after {
+  right: -6px;
+  animation-delay: 0.15s;
+}
+
+@keyframes fireFlicker {
+  0% { transform: scale(0.85) translateY(0); opacity: 0.8; }
+  100% { transform: scale(1.15) translateY(-4px); opacity: 1; }
+}
+
 /* ---------- Controls ---------- */
 .controls {
   flex: 0 0 auto;
@@ -637,6 +665,12 @@ html, body {
   font-size: 1rem !important;
   color: var(--neon-green);
   margin: 4px 0 !important;
+}
+
+.max-combo-row {
+  font-size: 1rem !important;
+  color: var(--neon-yellow);
+  margin: 4px 0 10px !important;
 }
 
 .daily-challenge-badge {
