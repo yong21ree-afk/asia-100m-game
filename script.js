@@ -322,6 +322,7 @@
   var resultTimeEl = document.getElementById("resultTime");
   var restartBtn = document.getElementById("restartBtn");
   var mainMenuBtn = document.getElementById("mainMenuBtn");
+  var shareImageBtn = document.getElementById("shareImageBtn");
   var soundToggleBtn = document.getElementById("soundToggleBtn");
   var langToggleBtn = document.getElementById("langToggleBtn");
   var falseStartOverlay = document.getElementById("falseStartOverlay");
@@ -394,6 +395,8 @@
       rivalResultWinTemplate: "🆚 {name} 라이벌전: 승리!",
       rivalResultLoseTemplate: "🆚 {name} 라이벌전: 석패, 다음엔 이겨봐요",
       ghostBeatBadge: "👻 내 자신을 이겼습니다!",
+      shareImageBtn: "📸 결과 이미지 저장",
+      shareCardFinishLabel: "완주 시간",
       comboLabel: "COMBO",
       comboGood: "GOOD!",
       comboGreat: "GREAT!",
@@ -443,6 +446,8 @@
       rivalResultWinTemplate: "🆚 vs {name}: Victory!",
       rivalResultLoseTemplate: "🆚 vs {name}: So Close — Beat Them Next Time!",
       ghostBeatBadge: "👻 You Beat Your Own Ghost!",
+      shareImageBtn: "📸 Save Result Image",
+      shareCardFinishLabel: "FINISH TIME",
       comboLabel: "COMBO",
       comboGood: "GOOD!",
       comboGreat: "GREAT!",
@@ -789,6 +794,213 @@
     } else {
       hideOverlay(ghostBeatBadgeEl);
     }
+
+    if (lastWinner === "player") {
+      showOverlay(shareImageBtn);
+    } else {
+      hideOverlay(shareImageBtn);
+    }
+  }
+
+  // ---------- Share card (Canvas-generated result image) ----------
+  var SHARE_CARD_SIZE = 1080;
+  var SHARE_CARD_URL = "https://asia-100m-game.vercel.app/";
+  var KOREAN_SAFE_FONT = "'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+  var PIXEL_FONT = "'Press Start 2P', monospace";
+
+  var MEDAL_COLORS = {
+    gold: "#fff400",
+    silver: "#d9d9f5",
+    bronze: "#ff9c4a"
+  };
+
+  function canvasToBlob(canvas) {
+    return new Promise(function (resolve) {
+      canvas.toBlob(function (blob) {
+        resolve(blob);
+      }, "image/png");
+    });
+  }
+
+  async function generateShareCardBlob() {
+    try {
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+    } catch (e) {
+      /* ignore font-loading errors, canvas will fall back to default fonts */
+    }
+
+    var size = SHARE_CARD_SIZE;
+    var canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    var ctx = canvas.getContext("2d");
+    var cx = size / 2;
+
+    // Background
+    var bgGrad = ctx.createLinearGradient(0, 0, 0, size);
+    bgGrad.addColorStop(0, "#0a0018");
+    bgGrad.addColorStop(1, "#1a0b30");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, size, size);
+
+    var glow = ctx.createRadialGradient(cx, size * 0.55, 80, cx, size * 0.55, size * 0.7);
+    glow.addColorStop(0, "rgba(255, 46, 166, 0.28)");
+    glow.addColorStop(1, "rgba(255, 46, 166, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, size, size);
+
+    // Outer neon frame
+    ctx.strokeStyle = "#fff400";
+    ctx.lineWidth = 10;
+    ctx.strokeRect(24, 24, size - 48, size - 48);
+    ctx.strokeStyle = "rgba(0, 246, 255, 0.5)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(40, 40, size - 80, size - 80);
+
+    ctx.textAlign = "center";
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Title
+    ctx.fillStyle = "#00f6ff";
+    ctx.shadowColor = "#00f6ff";
+    ctx.shadowBlur = 22;
+    ctx.font = "bold 46px " + KOREAN_SAFE_FONT;
+    ctx.fillText(t("h1Main"), cx, 150);
+    ctx.font = "bold 40px " + KOREAN_SAFE_FONT;
+    ctx.fillText(t("h1Sub"), cx, 205);
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(255, 244, 0, 0.5)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(140, 250);
+    ctx.lineTo(size - 140, 250);
+    ctx.stroke();
+
+    // Medal
+    if (lastMedalTier) {
+      ctx.font = "110px sans-serif";
+      ctx.shadowColor = MEDAL_COLORS[lastMedalTier];
+      ctx.shadowBlur = 24;
+      ctx.fillStyle = "#fff";
+      ctx.fillText(medalEmoji(lastMedalTier), cx, 420);
+
+      ctx.font = "34px " + PIXEL_FONT;
+      ctx.fillStyle = MEDAL_COLORS[lastMedalTier];
+      ctx.shadowColor = MEDAL_COLORS[lastMedalTier];
+      ctx.shadowBlur = 16;
+      ctx.fillText(t(medalKey(lastMedalTier)), cx, 470);
+    }
+
+    // Finish time
+    ctx.shadowBlur = 0;
+    ctx.font = "30px " + KOREAN_SAFE_FONT;
+    ctx.fillStyle = "#d8e0f5";
+    ctx.fillText(t("shareCardFinishLabel"), cx, 560);
+
+    var timeStr = resultTimeEl.textContent;
+    var unitStr = t("secondsUnit");
+    var timeFont = "bold 120px " + PIXEL_FONT;
+    var unitFont = "bold 56px " + KOREAN_SAFE_FONT;
+
+    ctx.font = timeFont;
+    var timeWidth = ctx.measureText(timeStr).width;
+    ctx.font = unitFont;
+    var unitWidth = ctx.measureText(unitStr).width;
+    var gap = 14;
+    var startX = cx - (timeWidth + gap + unitWidth) / 2;
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#fff400";
+    ctx.shadowColor = "#fff400";
+    ctx.shadowBlur = 20;
+    ctx.font = timeFont;
+    ctx.fillText(timeStr, startX, 680);
+    ctx.font = unitFont;
+    ctx.fillText(unitStr, startX + timeWidth + gap, 680);
+    ctx.textAlign = "center";
+    ctx.shadowBlur = 0;
+
+    // New record banner
+    var nextY = 760;
+    if (lastIsNewRecord) {
+      ctx.font = "34px " + KOREAN_SAFE_FONT;
+      ctx.fillStyle = "#39ff88";
+      ctx.shadowColor = "#39ff88";
+      ctx.shadowBlur = 16;
+      ctx.fillText(t("newRecordBanner"), cx, nextY);
+      ctx.shadowBlur = 0;
+      nextY += 60;
+    }
+
+    // Rival result
+    if (dailyRival) {
+      var rivalTemplate = lastRivalBeaten ? t("rivalResultWinTemplate") : t("rivalResultLoseTemplate");
+      var rivalLine = rivalTemplate.replace("{name}", dailyRival.name);
+      ctx.font = "30px " + KOREAN_SAFE_FONT;
+      ctx.fillStyle = "#00f6ff";
+      ctx.shadowColor = "#00f6ff";
+      ctx.shadowBlur = 14;
+      wrapCanvasText(ctx, rivalLine, cx, nextY, size - 200, 40);
+      ctx.shadowBlur = 0;
+    }
+
+    // Footer URL
+    ctx.font = "22px " + PIXEL_FONT;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+    ctx.fillText(SHARE_CARD_URL, cx, size - 60);
+
+    return canvasToBlob(canvas);
+  }
+
+  function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight) {
+    var words = text.split(" ");
+    var line = "";
+    var lines = [];
+    for (var i = 0; i < words.length; i++) {
+      var testLine = line ? line + " " + words[i] : words[i];
+      if (ctx.measureText(testLine).width > maxWidth && line) {
+        lines.push(line);
+        line = words[i];
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) lines.push(line);
+    var startY = y - ((lines.length - 1) * lineHeight) / 2;
+    for (var j = 0; j < lines.length; j++) {
+      ctx.fillText(lines[j], x, startY + j * lineHeight);
+    }
+  }
+
+  async function shareOrDownloadImage(blob) {
+    if (!blob) return;
+    var fileName = "asia100m_result.png";
+    try {
+      if (window.File && navigator.canShare) {
+        var file = new File([blob], fileName, { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: t("docTitle") });
+          return;
+        }
+      }
+    } catch (e) {
+      /* user cancelled the share sheet, or it's unsupported here — fall back to download */
+    }
+
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 4000);
   }
 
   // ---------- Game flow ----------
@@ -1052,6 +1264,17 @@
     resetGame();
     showOverlay(startOverlay);
     AudioEngine.startBgm();
+  });
+  shareImageBtn.addEventListener("click", function () {
+    shareImageBtn.disabled = true;
+    generateShareCardBlob()
+      .then(shareOrDownloadImage)
+      .catch(function () {
+        /* canvas/share failed silently; the game itself keeps working */
+      })
+      .then(function () {
+        shareImageBtn.disabled = false;
+      });
   });
   falseStartRetryBtn.addEventListener("click", function () {
     hideOverlay(falseStartOverlay);

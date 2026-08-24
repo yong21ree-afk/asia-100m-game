@@ -745,6 +745,17 @@ html, body {
   box-shadow: 4px 4px 0 var(--neon-cyan-dark);
 }
 
+.share-btn {
+  color: var(--neon-magenta);
+  border-color: var(--neon-magenta);
+  box-shadow: 4px 4px 0 var(--neon-magenta-dark);
+}
+
+.share-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .primary-btn:active,
 .secondary-btn:active {
   transform: translate(4px, 4px);
