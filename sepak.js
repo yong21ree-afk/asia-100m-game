@@ -5,10 +5,10 @@
   var ROUND_SECONDS = 60;
   var PEAK_HEIGHT_PERCENT = 55; // how high the ball arcs, in % of .court height above the floor
   var ZONE_FRACTION = 0.3; // success zone = bottom 30% of the peak height
-  var INITIAL_SERVE_DURATION = 1.9; // seconds for one "toward player" arc
-  var MIN_SERVE_DURATION = 0.9;
-  var SERVE_SPEEDUP = 0.045; // each success shortens the next serve by 4.5%
-  var RETURN_DURATION_BASE = 0.75; // "ball flies back to opponent" arc, before power scaling
+  var INITIAL_SERVE_DURATION = 2.3; // seconds for one "toward player" arc
+  var MIN_SERVE_DURATION = 1.1;
+  var SERVE_SPEEDUP = 0.04; // each success shortens the next serve by 4%
+  var RETURN_DURATION_BASE = 0.9; // "ball flies back to opponent" arc, before power scaling
   var MISS_PAUSE_MS = 600;
   var FROM_X = 84; // ball origin (%) near the opponent, per serve
   var TO_X_MIN = 8; // randomized ball landing (%) near our side, per serve
@@ -241,6 +241,7 @@
   var opponentPlayerEl = document.getElementById("opponentPlayer");
   var zoneGaugeEl = document.getElementById("zoneGauge");
   var zoneMarkerEl = document.getElementById("zoneMarker");
+  var landingShadowEl = document.getElementById("landingShadow");
   var comboPopupEl = document.getElementById("comboPopup");
   var powerFillEl = document.getElementById("powerFill");
 
@@ -403,11 +404,21 @@
     if (newPhase === "toward-player") {
       currentArcDuration = serveDuration;
       currentToX = TO_X_MIN + Math.random() * (TO_X_MAX - TO_X_MIN);
+      landingShadowEl.style.left = currentToX + "%";
+      landingShadowEl.style.opacity = "0.3";
     } else {
       currentArcDuration = RETURN_DURATION_BASE;
+      landingShadowEl.style.opacity = "0";
     }
     kickedThisArc = false;
     ballEl.classList.remove("bounce");
+  }
+
+  function updateLandingShadow(height) {
+    var fraction = clamp(1 - height / PEAK_HEIGHT_PERCENT, 0, 1);
+    landingShadowEl.style.opacity = (0.3 + fraction * 0.7).toFixed(2);
+    var scale = 0.4 + fraction * 0.9;
+    landingShadowEl.style.transform = "translate(-50%, 50%) scale(" + scale.toFixed(2) + ")";
   }
 
   function updateZoneMarker(height) {
@@ -437,6 +448,7 @@
 
     if (ballPhase === "toward-player") {
       updateZoneMarker(height);
+      updateLandingShadow(height);
     }
 
     if (t >= 1) {
@@ -542,6 +554,7 @@
     zoneGaugeEl.style.left = (usX + 9) + "%";
     opponentPlayerEl.style.left = oppBaseX + "%";
     ballEl.classList.remove("in-zone", "bounce");
+    landingShadowEl.style.opacity = "0";
     if (missTimeoutId) {
       clearTimeout(missTimeoutId);
       missTimeoutId = null;
