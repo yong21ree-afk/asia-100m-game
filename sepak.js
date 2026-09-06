@@ -20,7 +20,8 @@
   var MOVE_SPEED = 48; // % per second
   var PROXIMITY_PERCENT = 13; // how close our player must be to the ball (in %) to connect
 
-  var MAX_CHARGE_MS = 900; // holding this long = fully charged power
+  var MAX_CHARGE_MS_BASE = 900; // holding this long = fully charged power, at the starting (slowest) serve speed
+  var MIN_CHARGE_CAP_MS = 320; // never require more effort than this to fully charge, even at top speed
   var OPP_SWAY_AMPLITUDE = 8; // % — decorative opponent movement
   var OPP_SWAY_SPEED = 0.9; // radians/sec
 
@@ -448,6 +449,15 @@
   }
 
   // ---------- Charge / kick ----------
+  // As the serve speeds up, the "in-zone" window (a fixed fraction of the arc's
+  // time) gets proportionally shorter too — so the time needed to reach full
+  // charge shrinks along with it, keeping full-power kicks reachable instead of
+  // demanding the same long hold inside an ever-tinier window.
+  function getMaxChargeMs() {
+    var ratio = serveDuration / INITIAL_SERVE_DURATION;
+    return Math.max(MIN_CHARGE_CAP_MS, MAX_CHARGE_MS_BASE * ratio);
+  }
+
   function startCharge() {
     if (phase !== "playing") return;
     if (charging) return;
@@ -467,7 +477,7 @@
     if (!inZone || !closeEnough) return;
 
     var chargeMs = performance.now() - chargeStartTime;
-    var power = clamp(chargeMs / MAX_CHARGE_MS, 0, 1);
+    var power = clamp(chargeMs / getMaxChargeMs(), 0, 1);
 
     kickedThisArc = true;
     var pointsEarned = 1 + Math.round(power * 2); // 1 to 3 points
@@ -495,7 +505,7 @@
 
   function updatePowerMeter(now) {
     if (!charging) return;
-    var ratio = clamp((now - chargeStartTime) / MAX_CHARGE_MS, 0, 1);
+    var ratio = clamp((now - chargeStartTime) / getMaxChargeMs(), 0, 1);
     powerFillEl.style.width = (ratio * 100) + "%";
   }
 
