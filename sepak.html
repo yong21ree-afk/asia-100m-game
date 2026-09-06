@@ -13,17 +13,18 @@
   <div class="crt-overlay"></div>
   <div class="top-right-controls">
     <button id="soundToggleBtn" class="icon-toggle-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
+    <button id="langToggleBtn" class="icon-toggle-btn lang-toggle-btn" type="button" aria-label="언어 전환">EN</button>
     <a href="index.html" class="icon-toggle-btn home-link-btn" aria-label="육상 100m로 이동">🏃</a>
   </div>
 
   <div class="game-wrap">
     <header class="scoreboard">
-      <h1>🏐 아시아 스포츠 페스티벌 <span>세팍타크로</span></h1>
+      <h1><span data-i18n="h1Main">🏐 아시아 스포츠 페스티벌</span> <span data-i18n="h1Sub">세팍타크로</span></h1>
       <div class="scoreboard-info">
-        <div class="timer" id="timer">60초</div>
+        <div class="timer" id="timer">60<span data-i18n="secondsUnit">초</span></div>
         <div class="stats">
-          <span class="stat score-stat">🥎 점수 <b id="scoreValue">0</b></span>
-          <span class="stat combo-stat">🔥 콤보 <b id="comboValue">0</b></span>
+          <span class="stat score-stat">🥎 <span data-i18n="scoreLabel">점수</span> <b id="scoreValue">0</b></span>
+          <span class="stat combo-stat">🔥 <span data-i18n="comboLabel">콤보</span> <b id="comboValue">0</b></span>
         </div>
       </div>
     </header>
@@ -38,7 +39,7 @@
           <div class="net-tape"></div>
         </div>
 
-        <div class="zone-gauge">
+        <div class="zone-gauge" id="zoneGauge">
           <div class="zone-band"></div>
           <div class="zone-marker" id="zoneMarker"></div>
         </div>
@@ -71,35 +72,40 @@
     </main>
 
     <footer class="controls">
-      <button id="kickBtn" class="kick-btn" type="button">
-        <span class="kick-icon">🦵</span>
-        <span class="kick-text">차기</span>
-        <span class="key-hint">SPACE</span>
-      </button>
+      <button id="moveLeftBtn" class="move-btn" type="button" aria-label="왼쪽으로 이동">◀</button>
+      <div class="kick-wrap">
+        <div class="power-meter"><div class="power-fill" id="powerFill"></div></div>
+        <button id="kickBtn" class="kick-btn" type="button">
+          <span class="kick-icon">🦵</span>
+          <span class="kick-text" data-i18n="kickBtn">차기</span>
+          <span class="key-hint">SPACE</span>
+        </button>
+      </div>
+      <button id="moveRightBtn" class="move-btn" type="button" aria-label="오른쪽으로 이동">▶</button>
     </footer>
   </div>
 
   <!-- Start overlay -->
   <div id="startOverlay" class="overlay">
     <div class="overlay-card">
-      <h2>🏐 세팍타크로</h2>
-      <p>공이 네트를 넘어 우리 코트로 떨어져요.<br />공이 <b>초록색으로 빛날 때</b> "차기" 버튼(또는 스페이스바)을 눌러서 다시 넘겨보세요!</p>
-      <p class="tip">타이밍을 놓쳐서 공이 바닥에 닿으면 콤보가 초기화돼요. 성공할수록 공이 점점 빨라져요. 60초 동안 최대한 많은 점수와 콤보를 쌓아보세요.</p>
-      <button id="startBtn" class="primary-btn">시작하기</button>
+      <h2 data-i18n="startTitle">🏐 세팍타크로</h2>
+      <p data-i18n="startInstruction">◀/▶ 버튼(또는 방향키)으로 움직여서 공 아래로 이동하고, 공이 <b>초록색으로 빛날 때</b> "차기" 버튼(또는 스페이스바)을 <b>누르고 있다가 떼면</b> 세기 조절해서 넘길 수 있어요!</p>
+      <p class="tip" data-i18n="startTip">오래 누를수록 강하게 차서 점수가 더 올라가요. 타이밍을 놓치거나 공에서 멀리 있으면 콤보가 초기화돼요. 60초 동안 최대한 많은 점수와 콤보를 쌓아보세요.</p>
+      <button id="startBtn" class="primary-btn" data-i18n="startBtn">시작하기</button>
     </div>
   </div>
 
   <!-- Result overlay -->
   <div id="resultOverlay" class="overlay hidden">
     <div class="overlay-card">
-      <h2 id="resultTitle">⏱️ 타임 업!</h2>
-      <div id="newRecordBanner" class="new-record-banner hidden">🏆 최고기록 경신!</div>
-      <p class="result-stat"><span>이번 점수:</span> <b id="finalScore">0</b></p>
-      <p class="result-stat"><span>이번 최고 콤보:</span> <b id="finalMaxCombo">0</b></p>
-      <p class="result-stat best-score-row"><span>개인 최고 점수:</span> <b id="bestScoreValue">0</b></p>
+      <h2 id="resultTitle" data-i18n="resultTitle">⏱️ 타임 업!</h2>
+      <div id="newRecordBanner" class="new-record-banner hidden" data-i18n="newRecordBanner">🏆 최고기록 경신!</div>
+      <p class="result-stat"><span data-i18n="finalScoreLabel">이번 점수:</span> <b id="finalScore">0</b></p>
+      <p class="result-stat"><span data-i18n="finalComboLabel">이번 최고 콤보:</span> <b id="finalMaxCombo">0</b></p>
+      <p class="result-stat best-score-row"><span data-i18n="bestScoreLabel">개인 최고 점수:</span> <b id="bestScoreValue">0</b></p>
       <div class="result-btn-row">
-        <button id="restartBtn" class="primary-btn big-restart-btn">다시 하기</button>
-        <button id="mainMenuBtn" class="secondary-btn">메인으로 돌아가기</button>
+        <button id="restartBtn" class="primary-btn big-restart-btn" data-i18n="restartBtn">다시 하기</button>
+        <button id="mainMenuBtn" class="secondary-btn" data-i18n="mainMenuBtn">메인으로 돌아가기</button>
       </div>
     </div>
   </div>

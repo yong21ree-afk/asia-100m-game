@@ -100,6 +100,12 @@ html, body {
   color: var(--neon-cyan);
 }
 
+.lang-toggle-btn {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  color: var(--neon-cyan);
+}
+
 /* ---------- Scoreboard ---------- */
 .scoreboard {
   background: var(--bg-panel);
@@ -300,12 +306,7 @@ html, body {
   z-index: 4;
 }
 
-.player.us {
-  left: 12%;
-}
-
 .player.opponent {
-  left: 82%;
   transform: scaleX(-1);
 }
 
@@ -469,10 +470,57 @@ html, body {
 .controls {
   flex: 0 0 auto;
   display: flex;
+  align-items: stretch;
+  gap: 8px;
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
   background: var(--bg-panel);
   border-top: 4px solid var(--accent);
   box-shadow: 0 -4px 0 #000, 0 0 14px rgba(255, 244, 0, 0.25);
+}
+
+.move-btn {
+  flex: 0 0 auto;
+  width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 1.1rem;
+  color: var(--neon-cyan);
+  background: var(--bg-panel-2);
+  border: 3px solid #000;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  box-shadow: 4px 4px 0 #000;
+  transition: transform 0.06s ease-out, box-shadow 0.06s ease-out, filter 0.06s ease-out;
+}
+
+.move-btn:active,
+.move-btn.pressed {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 #000;
+  filter: brightness(1.3);
+}
+
+.kick-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.power-meter {
+  height: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid #000;
+}
+
+.power-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(to right, var(--neon-cyan), var(--neon-yellow), var(--neon-magenta));
+  transition: width 0.05s linear;
 }
 
 .kick-btn {
@@ -483,7 +531,7 @@ html, body {
   justify-content: center;
   gap: 2px;
   padding: 14px 8px;
-  min-height: 84px;
+  min-height: 78px;
   font-family: var(--font-pixel);
   font-size: 0.75rem;
   color: #fff;
@@ -648,6 +696,7 @@ html, body {
   .kick-btn { font-size: 0.6rem; min-height: 74px; }
   .kick-icon { font-size: 1.3rem; }
   .combo-popup { font-size: 0.8rem; }
+  .move-btn { width: 48px; font-size: 0.95rem; }
 }
 
 @media (min-width: 700px) {
@@ -657,7 +706,8 @@ html, body {
 
 @media (max-height: 480px) {
   .crowd { height: 10%; }
-  .kick-btn { min-height: 56px; padding: 8px; }
+  .kick-btn { min-height: 50px; padding: 8px; }
+  .move-btn { width: 44px; }
   .overlay-card { padding: 16px; }
   .overlay-card h2 { margin-bottom: 8px; }
   .overlay-card p { margin: 6px 0; }

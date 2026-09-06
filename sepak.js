@@ -6,13 +6,118 @@
   var PEAK_HEIGHT_PERCENT = 55; // how high the ball arcs, in % of .court height above the floor
   var ZONE_FRACTION = 0.3; // success zone = bottom 30% of the peak height
   var INITIAL_SERVE_DURATION = 1.9; // seconds for one "toward player" arc
-  var MIN_SERVE_DURATION = 0.85;
-  var SERVE_SPEEDUP = 0.05; // each success shortens the next serve by 5%
-  var RETURN_DURATION = 0.75; // fixed, decorative "ball flies back to opponent" arc
+  var MIN_SERVE_DURATION = 0.9;
+  var SERVE_SPEEDUP = 0.045; // each success shortens the next serve by 4.5%
+  var RETURN_DURATION_BASE = 0.75; // "ball flies back to opponent" arc, before power scaling
   var MISS_PAUSE_MS = 600;
-  var FROM_X = 84; // ball origin (%) near the opponent
-  var TO_X = 16; // ball landing (%) near our player
-  var COMBO_MILESTONES = { 5: "GREAT!", 10: "ON FIRE!" };
+  var FROM_X = 84; // ball origin (%) near the opponent, per serve
+  var TO_X_MIN = 8; // randomized ball landing (%) near our side, per serve
+  var TO_X_MAX = 44;
+  var COMBO_MILESTONES = { 5: "comboGreat", 10: "comboOnFire" };
+
+  var US_MIN_X = 4;
+  var US_MAX_X = 46;
+  var MOVE_SPEED = 48; // % per second
+  var PROXIMITY_PERCENT = 13; // how close our player must be to the ball (in %) to connect
+
+  var MAX_CHARGE_MS = 900; // holding this long = fully charged power
+  var OPP_SWAY_AMPLITUDE = 8; // % — decorative opponent movement
+  var OPP_SWAY_SPEED = 0.9; // radians/sec
+
+  // ---------- i18n ----------
+  var LANG_STORAGE_KEY = "sepak_lang";
+  var I18N = {
+    ko: {
+      docTitle: "아시아 스포츠 페스티벌 - 세팍타크로",
+      h1Main: "🏐 아시아 스포츠 페스티벌",
+      h1Sub: "세팍타크로",
+      secondsUnit: "초",
+      scoreLabel: "점수",
+      comboLabel: "콤보",
+      kickBtn: "차기",
+      startTitle: "🏐 세팍타크로",
+      startInstruction: "◀/▶ 버튼(또는 방향키)으로 움직여서 공 아래로 이동하고, 공이 <b>초록색으로 빛날 때</b> \"차기\" 버튼(또는 스페이스바)을 <b>누르고 있다가 떼면</b> 세기 조절해서 넘길 수 있어요!",
+      startTip: "오래 누를수록 강하게 차서 점수가 더 올라가요. 타이밍을 놓치거나 공에서 멀리 있으면 콤보가 초기화돼요. 60초 동안 최대한 많은 점수와 콤보를 쌓아보세요.",
+      startBtn: "시작하기",
+      resultTitle: "⏱️ 타임 업!",
+      newRecordBanner: "🏆 최고기록 경신!",
+      finalScoreLabel: "이번 점수:",
+      finalComboLabel: "이번 최고 콤보:",
+      bestScoreLabel: "개인 최고 점수:",
+      restartBtn: "다시 하기",
+      mainMenuBtn: "메인으로 돌아가기",
+      soundToggleLabel: "소리 켜기/끄기",
+      langToggleLabel: "언어 전환",
+      comboGreat: "GREAT!",
+      comboOnFire: "ON FIRE!"
+    },
+    en: {
+      docTitle: "Asia Sports Festival - Sepak Takraw",
+      h1Main: "🏐 Asia Sports Festival",
+      h1Sub: "Sepak Takraw",
+      secondsUnit: "s",
+      scoreLabel: "Score",
+      comboLabel: "Combo",
+      kickBtn: "Kick",
+      startTitle: "🏐 Sepak Takraw",
+      startInstruction: "Use ◀/▶ (or arrow keys) to move under the ball, then <b>hold and release</b> the \"Kick\" button (or Spacebar) while the ball <b>glows green</b> to control your power!",
+      startTip: "Hold longer for a harder kick and more points. Miss the timing or stand too far away and your combo resets. Rack up as much score and combo as you can in 60 seconds.",
+      startBtn: "Start",
+      resultTitle: "⏱️ Time's Up!",
+      newRecordBanner: "🏆 NEW RECORD!",
+      finalScoreLabel: "This Round's Score:",
+      finalComboLabel: "This Round's Best Combo:",
+      bestScoreLabel: "Personal Best Score:",
+      restartBtn: "Play Again",
+      mainMenuBtn: "Main Menu",
+      soundToggleLabel: "Toggle Sound",
+      langToggleLabel: "Switch Language",
+      comboGreat: "GREAT!",
+      comboOnFire: "ON FIRE!"
+    }
+  };
+
+  function detectInitialLang() {
+    try {
+      var saved = window.localStorage.getItem(LANG_STORAGE_KEY);
+      if (saved === "ko" || saved === "en") return saved;
+    } catch (e) {
+      /* ignore storage errors */
+    }
+    var nav = (navigator.language || navigator.userLanguage || "en").toLowerCase();
+    return nav.indexOf("ko") === 0 ? "ko" : "en";
+  }
+
+  var currentLang = detectInitialLang();
+
+  function t(key) {
+    var dict = I18N[currentLang] || I18N.en;
+    return dict[key] != null ? dict[key] : key;
+  }
+
+  function applyLanguage(lang) {
+    currentLang = lang === "ko" ? "ko" : "en";
+    document.documentElement.lang = currentLang;
+    document.title = t("docTitle");
+
+    var nodes = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < nodes.length; i++) {
+      var key = nodes[i].getAttribute("data-i18n");
+      nodes[i].innerHTML = t(key);
+    }
+
+    soundToggleBtn.setAttribute("aria-label", t("soundToggleLabel"));
+    langToggleBtn.setAttribute("aria-label", t("langToggleLabel"));
+    langToggleBtn.textContent = currentLang === "ko" ? "EN" : "KO";
+
+    timerEl.innerHTML = Math.ceil(timeLeftDisplay) + t("secondsUnit");
+
+    try {
+      window.localStorage.setItem(LANG_STORAGE_KEY, currentLang);
+    } catch (e) {
+      /* ignore storage errors */
+    }
+  }
 
   // ---------- Audio (Web Audio API, no sound files) ----------
   var AudioEngine = (function () {
@@ -88,9 +193,10 @@
       noise.stop(t0 + duration);
     }
 
-    function playKick() {
-      tone(520, 0, 0.09, { type: "square", gain: 0.28, attack: 0.003, freqEnd: 760 });
-      noiseBurst(0, 0.05, { gain: 0.18, filterFreq: 3200, decay: 3 });
+    function playKick(power) {
+      var freq = 460 + power * 260;
+      tone(freq, 0, 0.09, { type: "square", gain: 0.28, attack: 0.003, freqEnd: freq + 220 });
+      noiseBurst(0, 0.05, { gain: 0.18 + power * 0.1, filterFreq: 3200, decay: 3 });
     }
 
     function playFail() {
@@ -129,11 +235,13 @@
   })();
 
   // ---------- DOM ----------
-  var courtEl = document.querySelector(".court");
   var ballEl = document.getElementById("ball");
   var usPlayerEl = document.getElementById("usPlayer");
+  var opponentPlayerEl = document.getElementById("opponentPlayer");
+  var zoneGaugeEl = document.getElementById("zoneGauge");
   var zoneMarkerEl = document.getElementById("zoneMarker");
   var comboPopupEl = document.getElementById("comboPopup");
+  var powerFillEl = document.getElementById("powerFill");
 
   var timerEl = document.getElementById("timer");
   var scoreValueEl = document.getElementById("scoreValue");
@@ -142,7 +250,6 @@
   var startOverlay = document.getElementById("startOverlay");
   var startBtn = document.getElementById("startBtn");
   var resultOverlay = document.getElementById("resultOverlay");
-  var resultTitleEl = document.getElementById("resultTitle");
   var newRecordBannerEl = document.getElementById("newRecordBanner");
   var finalScoreEl = document.getElementById("finalScore");
   var finalMaxComboEl = document.getElementById("finalMaxCombo");
@@ -151,7 +258,10 @@
   var mainMenuBtn = document.getElementById("mainMenuBtn");
 
   var kickBtn = document.getElementById("kickBtn");
+  var moveLeftBtn = document.getElementById("moveLeftBtn");
+  var moveRightBtn = document.getElementById("moveRightBtn");
   var soundToggleBtn = document.getElementById("soundToggleBtn");
+  var langToggleBtn = document.getElementById("langToggleBtn");
   var crowdContainer = document.getElementById("crowd");
 
   // ---------- Storage ----------
@@ -182,6 +292,7 @@
   var score = 0;
   var combo = 0;
   var maxCombo = 0;
+  var timeLeftDisplay = ROUND_SECONDS;
 
   var roundStartTime = 0;
   var rafId = null;
@@ -190,13 +301,24 @@
   var ballStartTime = 0;
   var currentArcDuration = INITIAL_SERVE_DURATION;
   var serveDuration = INITIAL_SERVE_DURATION;
+  var currentToX = 20;
+  var currentBallX = FROM_X;
   var inZone = false;
   var kickedThisArc = false;
   var missTimeoutId = null;
 
+  var usX = 25;
+  var oppBaseX = 84;
+  var movingLeft = false;
+  var movingRight = false;
+
+  var charging = false;
+  var chargeStartTime = 0;
+
   function showOverlay(el) { el.classList.remove("hidden"); }
   function hideOverlay(el) { el.classList.add("hidden"); }
   function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
   // ---------- Crowd ----------
   function buildCrowd() {
@@ -218,7 +340,7 @@
   function showComboPopup(text) {
     comboPopupEl.textContent = text;
     comboPopupEl.classList.remove("show");
-    void comboPopupEl.offsetWidth; // restart animation if re-triggered
+    void comboPopupEl.offsetWidth;
     comboPopupEl.classList.add("show");
   }
 
@@ -232,9 +354,9 @@
   }
 
   function checkComboMilestone(count) {
-    var text = COMBO_MILESTONES[count];
-    if (!text) return;
-    showComboPopup(text);
+    var key = COMBO_MILESTONES[count];
+    if (!key) return;
+    showComboPopup(t(key));
     if (count === 5) {
       AudioEngine.playComboGreat();
     } else if (count === 10) {
@@ -252,23 +374,43 @@
     }, 350);
   }
 
-  // ---------- Score / combo display ----------
   function updateStatsDisplay() {
     scoreValueEl.textContent = score;
     comboValueEl.textContent = combo;
+  }
+
+  // ---------- Movement ----------
+  function updateMovement(dt) {
+    if (movingLeft && !movingRight) {
+      usX = clamp(usX - MOVE_SPEED * dt, US_MIN_X, US_MAX_X);
+    } else if (movingRight && !movingLeft) {
+      usX = clamp(usX + MOVE_SPEED * dt, US_MIN_X, US_MAX_X);
+    }
+    usPlayerEl.style.left = usX + "%";
+    zoneGaugeEl.style.left = clamp(usX + 9, US_MIN_X, US_MAX_X + 9) + "%";
+  }
+
+  function updateOpponentSway(now) {
+    var oppX = oppBaseX + Math.sin(now / 1000 * OPP_SWAY_SPEED) * OPP_SWAY_AMPLITUDE;
+    opponentPlayerEl.style.left = oppX + "%";
   }
 
   // ---------- Ball flight ----------
   function startServe(newPhase) {
     ballPhase = newPhase;
     ballStartTime = performance.now();
-    currentArcDuration = newPhase === "toward-player" ? serveDuration : RETURN_DURATION;
+    if (newPhase === "toward-player") {
+      currentArcDuration = serveDuration;
+      currentToX = TO_X_MIN + Math.random() * (TO_X_MAX - TO_X_MIN);
+    } else {
+      currentArcDuration = RETURN_DURATION_BASE;
+    }
     kickedThisArc = false;
     ballEl.classList.remove("bounce");
   }
 
   function updateZoneMarker(height) {
-    var pct = Math.max(0, Math.min(100, (height / PEAK_HEIGHT_PERCENT) * 100));
+    var pct = clamp((height / PEAK_HEIGHT_PERCENT) * 100, 0, 100);
     zoneMarkerEl.style.bottom = pct + "%";
   }
 
@@ -277,9 +419,10 @@
 
     var t = Math.min(1, (now - ballStartTime) / 1000 / currentArcDuration);
     var height = PEAK_HEIGHT_PERCENT * Math.sin(Math.PI * t);
-    var fromX = ballPhase === "toward-player" ? FROM_X : TO_X;
-    var toX = ballPhase === "toward-player" ? TO_X : FROM_X;
+    var fromX = ballPhase === "toward-player" ? FROM_X : currentToX;
+    var toX = ballPhase === "toward-player" ? currentToX : FROM_X;
     var x = lerp(fromX, toX, t);
+    currentBallX = x;
 
     ballEl.style.left = x + "%";
     ballEl.style.bottom = "calc(22% + " + height + "% - 6px)";
@@ -304,28 +447,56 @@
     }
   }
 
-  function handleKick() {
+  // ---------- Charge / kick ----------
+  function startCharge() {
     if (phase !== "playing") return;
-    if (ballPhase !== "toward-player") return;
-    if (kickedThisArc || !inZone) return;
+    if (charging) return;
+    charging = true;
+    chargeStartTime = performance.now();
+  }
+
+  function releaseCharge() {
+    if (!charging) return;
+    charging = false;
+    powerFillEl.style.width = "0%";
+
+    if (phase !== "playing") return;
+    if (ballPhase !== "toward-player" || kickedThisArc) return;
+
+    var closeEnough = Math.abs(usX - currentBallX) <= PROXIMITY_PERCENT;
+    if (!inZone || !closeEnough) return;
+
+    var chargeMs = performance.now() - chargeStartTime;
+    var power = clamp(chargeMs / MAX_CHARGE_MS, 0, 1);
 
     kickedThisArc = true;
-    score++;
+    var pointsEarned = 1 + Math.round(power * 2); // 1 to 3 points
+    score += pointsEarned;
     combo++;
     if (combo > maxCombo) maxCombo = combo;
     updateStatsDisplay();
     checkComboMilestone(combo);
     triggerKickAnimation();
-    AudioEngine.playKick();
+    AudioEngine.playKick(power);
 
     serveDuration = Math.max(MIN_SERVE_DURATION, serveDuration * (1 - SERVE_SPEEDUP));
-    startServe("toward-opponent");
+    ballStartTime = performance.now();
+    ballPhase = "toward-opponent";
+    currentArcDuration = RETURN_DURATION_BASE * (1 - power * 0.3);
+    kickedThisArc = false;
+    ballEl.classList.remove("bounce");
 
     var btn = kickBtn;
     btn.classList.add("pressed");
     setTimeout(function () {
       btn.classList.remove("pressed");
     }, 90);
+  }
+
+  function updatePowerMeter(now) {
+    if (!charging) return;
+    var ratio = clamp((now - chargeStartTime) / MAX_CHARGE_MS, 0, 1);
+    powerFillEl.style.width = (ratio * 100) + "%";
   }
 
   function handleMiss() {
@@ -348,9 +519,18 @@
     combo = 0;
     maxCombo = 0;
     serveDuration = INITIAL_SERVE_DURATION;
+    usX = 25;
+    movingLeft = false;
+    movingRight = false;
+    charging = false;
     updateStatsDisplay();
-    timerEl.textContent = ROUND_SECONDS + "초";
+    timeLeftDisplay = ROUND_SECONDS;
+    timerEl.innerHTML = ROUND_SECONDS + t("secondsUnit");
+    powerFillEl.style.width = "0%";
     usPlayerEl.classList.remove("on-fire", "kicking");
+    usPlayerEl.style.left = usX + "%";
+    zoneGaugeEl.style.left = (usX + 9) + "%";
+    opponentPlayerEl.style.left = oppBaseX + "%";
     ballEl.classList.remove("in-zone", "bounce");
     if (missTimeoutId) {
       clearTimeout(missTimeoutId);
@@ -368,24 +548,34 @@
     rafId = requestAnimationFrame(loop);
   }
 
+  var lastFrameTime = 0;
+
   function loop(now) {
     if (phase !== "playing") return;
 
+    var dt = lastFrameTime ? (now - lastFrameTime) / 1000 : 0;
+    lastFrameTime = now;
+
     var elapsed = (now - roundStartTime) / 1000;
     var timeLeft = Math.max(0, ROUND_SECONDS - elapsed);
-    timerEl.textContent = Math.ceil(timeLeft) + "초";
+    timeLeftDisplay = timeLeft;
+    timerEl.innerHTML = Math.ceil(timeLeft) + t("secondsUnit");
 
     if (timeLeft <= 0) {
       endRound();
       return;
     }
 
+    updateMovement(dt);
+    updateOpponentSway(now);
     updateBall(now);
+    updatePowerMeter(now);
     rafId = requestAnimationFrame(loop);
   }
 
   function endRound() {
     phase = "finished";
+    lastFrameTime = 0;
     if (rafId) {
       cancelAnimationFrame(rafId);
       rafId = null;
@@ -394,6 +584,8 @@
       clearTimeout(missTimeoutId);
       missTimeoutId = null;
     }
+    charging = false;
+    powerFillEl.style.width = "0%";
 
     var prevBest = loadBestScore();
     var isNewRecord = prevBest === null || score > prevBest;
@@ -409,7 +601,58 @@
     showOverlay(resultOverlay);
   }
 
-  // ---------- Input ----------
+  // ---------- Input: kick (mouse/touch hold + Space hold) ----------
+  kickBtn.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    startCharge();
+  });
+  kickBtn.addEventListener("pointerup", releaseCharge);
+  kickBtn.addEventListener("pointerleave", releaseCharge);
+  kickBtn.addEventListener("pointercancel", releaseCharge);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.repeat) return;
+    if (e.code === "Space" || e.key === " ") {
+      e.preventDefault();
+      startCharge();
+    }
+  });
+  document.addEventListener("keyup", function (e) {
+    if (e.code === "Space" || e.key === " ") {
+      e.preventDefault();
+      releaseCharge();
+    }
+  });
+
+  // ---------- Input: movement (buttons + arrow keys) ----------
+  function bindHold(el, onDown, onUp) {
+    el.addEventListener("pointerdown", function (e) {
+      e.preventDefault();
+      onDown();
+    });
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointerleave", onUp);
+    el.addEventListener("pointercancel", onUp);
+  }
+
+  bindHold(moveLeftBtn, function () { movingLeft = true; }, function () { movingLeft = false; });
+  bindHold(moveRightBtn, function () { movingRight = true; }, function () { movingRight = false; });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") { e.preventDefault(); movingLeft = true; }
+    else if (e.key === "ArrowRight") { e.preventDefault(); movingRight = true; }
+  });
+  document.addEventListener("keyup", function (e) {
+    if (e.key === "ArrowLeft") movingLeft = false;
+    else if (e.key === "ArrowRight") movingRight = false;
+  });
+  window.addEventListener("blur", function () {
+    movingLeft = false;
+    movingRight = false;
+    if (charging) releaseCharge();
+  });
+
+  // ---------- Overlay buttons ----------
   startBtn.addEventListener("click", startRound);
   restartBtn.addEventListener("click", startRound);
   mainMenuBtn.addEventListener("click", function () {
@@ -424,14 +667,8 @@
     hideOverlay(resultOverlay);
   });
 
-  kickBtn.addEventListener("click", handleKick);
-
-  document.addEventListener("keydown", function (e) {
-    if (e.repeat) return;
-    if (e.code === "Space" || e.key === " ") {
-      e.preventDefault();
-      handleKick();
-    }
+  langToggleBtn.addEventListener("click", function () {
+    applyLanguage(currentLang === "ko" ? "en" : "ko");
   });
 
   // ---------- Sound toggle ----------
@@ -486,5 +723,6 @@
 
   // ---------- Init ----------
   buildCrowd();
+  applyLanguage(currentLang);
   resetRound();
 })();
