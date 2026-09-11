@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>아시아 스포츠 페스티벌 - 양궁</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="archery.css" />
+</head>
+<body>
+  <div class="crt-overlay"></div>
+  <div class="top-right-controls">
+    <button id="soundToggleBtn" class="icon-toggle-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
+    <button id="langToggleBtn" class="icon-toggle-btn lang-toggle-btn" type="button" aria-label="언어 전환">EN</button>
+    <a href="index.html" class="icon-toggle-btn home-link-btn" aria-label="육상 100m로 이동">🏃</a>
+    <a href="sepak.html" class="icon-toggle-btn home-link-btn" aria-label="세팍타크로로 이동">🏐</a>
+  </div>
+
+  <div class="game-wrap">
+    <header class="scoreboard">
+      <h1><span data-i18n="h1Main">🏹 아시아 스포츠 페스티벌</span> <span data-i18n="h1Sub">양궁</span></h1>
+      <div class="scoreboard-info">
+        <div class="stat shot-stat"><span data-i18n="shotLabel">발</span> <b id="shotValue">1/5</b></div>
+        <div class="stat score-stat"><span data-i18n="scoreLabel">점수</span> <b id="scoreValue">0</b></div>
+        <div class="stat arrows-stat"><span data-i18n="arrowsLabel">화살</span> <b id="arrowsValue">5</b></div>
+      </div>
+    </header>
+
+    <main class="range-stage" id="rangeStage">
+      <div class="sky"></div>
+      <div class="crowd" id="crowd"></div>
+
+      <div class="target" id="target">
+        <div class="target-rings"></div>
+        <div class="target-center"></div>
+      </div>
+
+      <div class="target-pulse" id="targetPulse"></div>
+      <div class="stuck-arrows" id="stuckArrows"></div>
+
+      <div class="aim-line" id="aimLine"></div>
+      <div class="reticle" id="reticle"><div class="ring"></div></div>
+      <div class="score-popup" id="scorePopup"></div>
+
+      <div class="archer" id="archer">
+        <div class="head"></div>
+        <div class="body"></div>
+        <div class="bow"></div>
+        <div class="arm arm-front"></div>
+        <div class="arm arm-back"></div>
+        <div class="leg leg-left"></div>
+        <div class="leg leg-right"></div>
+      </div>
+
+      <div class="arrow-flying" id="arrowFlying"></div>
+
+      <div class="aim-tip" id="aimTip" data-i18n="aimHint">마우스나 손가락으로 조준하세요</div>
+    </main>
+
+    <footer class="controls">
+      <button id="shootBtn" class="shoot-btn" type="button">
+        <span class="shoot-icon">🏹</span>
+        <span class="shoot-text" data-i18n="shootBtn">발사</span>
+        <span class="key-hint">SPACE</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- Start overlay -->
+  <div id="startOverlay" class="overlay">
+    <div class="overlay-card">
+      <h2 data-i18n="startTitle">🏹 양궁</h2>
+      <p data-i18n="startInstruction">화면 위에서 마우스나 손가락을 움직여 과녁을 조준하고, <b>발사</b> 버튼(PC는 화면 클릭도 가능)으로 화살을 쏘세요!</p>
+      <p class="tip" data-i18n="startTip">조준선이 미세하게 흔들려요. 한가운데(10점)에 가까울수록 높은 점수! 5발을 모두 쏘면 경기가 끝나고 결과가 나옵니다.</p>
+      <button id="startBtn" class="primary-btn" data-i18n="startBtn">시작하기</button>
+    </div>
+  </div>
+
+  <!-- Result overlay -->
+  <div id="resultOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <h2 id="resultTitle" data-i18n="resultTitle">🎯 결과</h2>
+      <div id="newRecordBanner" class="new-record-banner hidden" data-i18n="newRecordBanner">🏆 최고기록 경신!</div>
+      <p id="ratingText" class="rating-text"></p>
+      <p class="result-stat total-score-row"><span data-i18n="finalScoreLabel">TOTAL SCORE</span> <b id="finalScore">0</b> <span class="of-max" id="finalOfMax">/ 50</span></p>
+      <p class="breakdown-label" data-i18n="breakdownLabel">5발의 점수</p>
+      <div id="shotBreakdown" class="shot-breakdown"></div>
+      <p class="result-stat best-score-row"><span data-i18n="bestScoreLabel">개인 최고 점수:</span> <b id="bestScoreValue">0</b></p>
+      <div class="result-btn-row">
+        <button id="restartBtn" class="primary-btn big-restart-btn" data-i18n="restartBtn">다시 쏘기</button>
+        <button id="mainMenuBtn" class="secondary-btn" data-i18n="mainMenuBtn">메인으로 돌아가기</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="archery.js"></script>
+</body>
+</html>
