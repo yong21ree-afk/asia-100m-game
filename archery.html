@@ -48,7 +48,11 @@
 
       <div class="aim-line" id="aimLine"></div>
       <div class="reticle" id="reticle"><div class="ring"></div></div>
-      <div class="score-popup" id="scorePopup"></div>
+      <div class="score-popup" id="scorePopup">
+        <span class="score-popup-main" id="scorePopupMain"></span>
+        <span class="score-popup-sub" id="scorePopupSub"></span>
+      </div>
+      <div class="combo-popup" id="comboPopup"></div>
 
       <div class="archer" id="archer">
         <div class="head"></div>
@@ -93,6 +97,20 @@
       <p class="result-stat total-score-row"><span data-i18n="finalScoreLabel">TOTAL SCORE</span> <b id="finalScore">0</b> <span class="of-max" id="finalOfMax">/ 50</span></p>
       <p class="breakdown-label" data-i18n="breakdownLabel">5발의 점수</p>
       <div id="shotBreakdown" class="shot-breakdown"></div>
+      <div class="result-extra-stats">
+        <div class="mini-stat">
+          <span class="mini-stat-label" data-i18n="bestHitLabel">최고 명중</span>
+          <b id="bestHitValue">-</b>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-label" data-i18n="perfectCountLabel">PERFECT</span>
+          <b id="perfectCountValue">0</b>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-label" data-i18n="maxComboLabel">최고 콤보</span>
+          <b id="maxComboValue">0</b>
+        </div>
+      </div>
       <p class="result-stat best-score-row"><span data-i18n="bestScoreLabel">개인 최고 점수:</span> <b id="bestScoreValue">0</b></p>
       <div class="result-btn-row">
         <button id="restartBtn" class="primary-btn big-restart-btn" data-i18n="restartBtn">다시 쏘기</button>

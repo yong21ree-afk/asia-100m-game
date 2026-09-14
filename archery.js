@@ -28,6 +28,11 @@
   var WIND_SCALE_MAX = 1.0; // last shot: full strength
   var WIND_ARROWS = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"]; // 8 compass sectors, starting at 0deg = east (right)
 
+  // Hit feedback tiers and combo: score 10 = PERFECT, 7-9 = GREAT, 1-6 = HIT,
+  // 0 = MISS. A combo keeps climbing while you land GREAT-or-better shots in
+  // a row; it's a fun streak counter only - it never changes the score math.
+  var COMBO_THRESHOLD = 7;
+
   // ---------- i18n ----------
   var LANG_STORAGE_KEY = "archery_lang";
   var I18N = {
@@ -52,17 +57,23 @@
       newRecordBanner: "🏆 최고기록 경신!",
       finalScoreLabel: "TOTAL SCORE",
       breakdownLabel: "5발의 점수",
+      bestHitLabel: "최고 명중",
+      perfectCountLabel: "PERFECT",
+      maxComboLabel: "최고 콤보",
       bestScoreLabel: "개인 최고 점수:",
       restartBtn: "다시 쏘기",
       mainMenuBtn: "메인으로 돌아가기",
       soundToggleLabel: "소리 켜기/끄기",
       langToggleLabel: "언어 전환",
       missText: "MISS",
-      bullText: "BULLSEYE!",
-      ratingPerfect: "명궁! 완벽합니다",
-      ratingGreat: "훌륭한 궁수",
-      ratingGood: "좋은 실력",
-      ratingOk: "연습이 필요해요",
+      hitTierHit: "HIT",
+      hitTierGreat: "GREAT",
+      hitTierPerfect: "PERFECT",
+      comboSuffix: "COMBO",
+      ratingPerfect: "PERFECT ARCHER!",
+      ratingGreat: "EXCELLENT!",
+      ratingGood: "GREAT!",
+      ratingOk: "GOOD!",
       ratingBad: "다시 도전!"
     },
     en: {
@@ -86,17 +97,23 @@
       newRecordBanner: "🏆 NEW RECORD!",
       finalScoreLabel: "TOTAL SCORE",
       breakdownLabel: "Each of your 5 shots",
+      bestHitLabel: "Best Hit",
+      perfectCountLabel: "PERFECT",
+      maxComboLabel: "Best Combo",
       bestScoreLabel: "Personal Best:",
       restartBtn: "Play Again",
       mainMenuBtn: "Main Menu",
       soundToggleLabel: "Toggle Sound",
       langToggleLabel: "Switch Language",
       missText: "MISS",
-      bullText: "BULLSEYE!",
-      ratingPerfect: "Master archer! Flawless",
-      ratingGreat: "Sharp shooting",
-      ratingGood: "Nicely done",
-      ratingOk: "Keep practising",
+      hitTierHit: "HIT",
+      hitTierGreat: "GREAT",
+      hitTierPerfect: "PERFECT",
+      comboSuffix: "COMBO",
+      ratingPerfect: "PERFECT ARCHER!",
+      ratingGreat: "EXCELLENT!",
+      ratingGood: "GREAT!",
+      ratingOk: "GOOD!",
       ratingBad: "Try again!"
     }
   };
@@ -112,6 +129,7 @@
 
   var currentLang = detectInitialLang();
   var lastRatingKey = null;
+  var lastBestHitTierKey = null;
 
   function t(key) {
     var dict = I18N[currentLang] || I18N.en;
@@ -136,6 +154,7 @@
     // rating text is set imperatively, so re-translate it on a language switch
     if (lastRatingKey) ratingTextEl.textContent = t(lastRatingKey);
     if (windStrengthKey) windStrengthEl.textContent = t(windStrengthKey);
+    if (lastBestHitTierKey) bestHitValueEl.textContent = t(lastBestHitTierKey);
 
     try {
       window.localStorage.setItem(LANG_STORAGE_KEY, currentLang);
@@ -239,6 +258,13 @@
       });
     }
 
+    function playCombo(comboCount) {
+      // a short rising chime layered on top of the hit sound, one extra note per combo step
+      var notes = [880, 1108.73, 1318.51];
+      var idx = Math.min(comboCount - 2, notes.length - 1);
+      tone(notes[Math.max(0, idx)], 0.05, 0.14, { type: "square", gain: 0.2, attack: 0.004 });
+    }
+
     function playRoundEnd(isRecord) {
       var notes = isRecord ? [523.25, 659.25, 783.99, 1046.5] : [523.25, 587.33, 659.25];
       notes.forEach(function (fr, i) {
@@ -254,6 +280,7 @@
       playThunk: playThunk,
       playMiss: playMiss,
       playBull: playBull,
+      playCombo: playCombo,
       playRoundEnd: playRoundEnd,
       suspendContext: function () {
         var c = getCtx();
@@ -274,6 +301,9 @@
   var reticleEl = document.getElementById("reticle");
   var aimLineEl = document.getElementById("aimLine");
   var scorePopupEl = document.getElementById("scorePopup");
+  var scorePopupMainEl = document.getElementById("scorePopupMain");
+  var scorePopupSubEl = document.getElementById("scorePopupSub");
+  var comboPopupEl = document.getElementById("comboPopup");
   var archerEl = document.getElementById("archer");
   var arrowFlyingEl = document.getElementById("arrowFlying");
   var aimTipEl = document.getElementById("aimTip");
@@ -292,6 +322,9 @@
   var finalScoreEl = document.getElementById("finalScore");
   var finalOfMaxEl = document.getElementById("finalOfMax");
   var shotBreakdownEl = document.getElementById("shotBreakdown");
+  var bestHitValueEl = document.getElementById("bestHitValue");
+  var perfectCountValueEl = document.getElementById("perfectCountValue");
+  var maxComboValueEl = document.getElementById("maxComboValue");
   var bestScoreValueEl = document.getElementById("bestScoreValue");
   var restartBtn = document.getElementById("restartBtn");
   var mainMenuBtn = document.getElementById("mainMenuBtn");
@@ -327,6 +360,11 @@
   var score = 0;
   var arrowsLeft = ARROWS_PER_ROUND;
   var shotScores = [];        // score of each arrow shot this match
+
+  var combo = 0;             // consecutive GREAT-or-better shots (display only, no score bonus)
+  var maxCombo = 0;
+  var perfectCount = 0;      // number of PERFECT (center) hits this match
+  var bestHitTierRank = 0;   // highest hit tier reached this match: 0 miss, 1 hit, 2 great, 3 perfect
 
   var pointer = { x: 0, y: 0 };  // raw aim point (px, relative to rangeStage)
   var aimShown = { x: 0, y: 0 }; // pointer + sway, the crosshair position actually used
@@ -462,6 +500,21 @@
     return clamp(ring, 1, 10);
   }
 
+  // ---------- Hit tiers: 0 miss, 1 hit, 2 great, 3 perfect ----------
+  function hitTierRankFor(hitScore) {
+    if (hitScore === 10) return 3;
+    if (hitScore >= COMBO_THRESHOLD) return 2;
+    if (hitScore >= 1) return 1;
+    return 0;
+  }
+
+  function hitTierKeyForRank(rank) {
+    if (rank === 3) return "hitTierPerfect";
+    if (rank === 2) return "hitTierGreat";
+    if (rank === 1) return "hitTierHit";
+    return "missText";
+  }
+
   // ---------- Shooting ----------
   function fireArrow() {
     if (phase !== "aiming" || arrowsLeft <= 0) return;
@@ -532,6 +585,17 @@
     shotScores.push(hitScore);
     updateStatsDisplay();
 
+    var tierRank = hitTierRankFor(hitScore);
+    if (tierRank > bestHitTierRank) bestHitTierRank = tierRank;
+    if (hitScore === 10) perfectCount++;
+
+    if (tierRank >= 2) {
+      combo++;
+      if (combo > maxCombo) maxCombo = combo;
+    } else {
+      combo = 0;
+    }
+
     // stuck arrow marker
     var geom = getTargetGeom();
     if (hitScore > 0) {
@@ -543,13 +607,21 @@
       mark.style.transform = "translate(-100%, -50%) rotate(" + (ang + 20) + "deg)";
       stuckArrowsEl.appendChild(mark);
 
-      targetPulseEl.classList.remove("hit");
+      var pulseClass = tierRank === 3 ? "perfect" : "hit";
+      targetPulseEl.classList.remove("hit", "perfect");
       void targetPulseEl.offsetWidth;
-      targetPulseEl.classList.add("hit");
+      targetPulseEl.classList.add(pulseClass);
+
+      if (tierRank === 3) {
+        targetEl.classList.remove("perfect-flash");
+        void targetEl.offsetWidth;
+        targetEl.classList.add("perfect-flash");
+      }
     }
 
     // score popup at the impact point
-    showScorePopup(hx, hy, hitScore);
+    showScorePopup(hx, hy, hitScore, tierRank);
+    if (combo >= 2) showComboPopup(combo);
 
     if (hitScore === 10) {
       AudioEngine.playBull();
@@ -558,6 +630,7 @@
     } else {
       AudioEngine.playThunk(hitScore);
     }
+    if (combo >= 2) AudioEngine.playCombo(combo);
 
     setTimeout(function () {
       if (arrowsLeft <= 0) {
@@ -571,21 +644,22 @@
     }, RESET_AFTER_SHOT_MS);
   }
 
-  function showScorePopup(x, y, hitScore) {
-    scorePopupEl.className = "score-popup";
-    if (hitScore === 0) {
-      scorePopupEl.textContent = t("missText");
-      scorePopupEl.classList.add("miss");
-    } else if (hitScore === 10) {
-      scorePopupEl.textContent = t("bullText");
-      scorePopupEl.classList.add("bull");
-    } else {
-      scorePopupEl.textContent = "+" + hitScore;
-    }
+  function showScorePopup(x, y, hitScore, tierRank) {
+    var tierClass = tierRank === 3 ? "perfect" : tierRank === 2 ? "great" : tierRank === 0 ? "miss" : "";
+    scorePopupEl.className = "score-popup" + (tierClass ? " " + tierClass : "");
+    scorePopupMainEl.textContent = t(hitTierKeyForRank(tierRank));
+    scorePopupSubEl.textContent = hitScore > 0 ? "+" + hitScore : "";
     scorePopupEl.style.left = x + "px";
     scorePopupEl.style.top = y + "px";
     void scorePopupEl.offsetWidth;
     scorePopupEl.classList.add("show");
+  }
+
+  function showComboPopup(comboCount) {
+    comboPopupEl.textContent = comboCount + " " + t("comboSuffix");
+    comboPopupEl.classList.remove("show");
+    void comboPopupEl.offsetWidth;
+    comboPopupEl.classList.add("show");
   }
 
   // ---------- Round flow ----------
@@ -593,12 +667,20 @@
     score = 0;
     arrowsLeft = ARROWS_PER_ROUND;
     shotScores = [];
+    combo = 0;
+    maxCombo = 0;
+    perfectCount = 0;
+    bestHitTierRank = 0;
     updateStatsDisplay();
     stuckArrowsEl.innerHTML = "";
     scorePopupEl.className = "score-popup";
+    scorePopupMainEl.textContent = "";
+    scorePopupSubEl.textContent = "";
+    comboPopupEl.classList.remove("show");
     arrowFlyingEl.style.opacity = "0";
     aimLineEl.style.opacity = "0";
-    targetPulseEl.classList.remove("hit");
+    targetPulseEl.classList.remove("hit", "perfect");
+    targetEl.classList.remove("perfect-flash");
 
     var sr = getStageRect();
     pointer.x = sr.width / 2;
@@ -628,8 +710,10 @@
       var v = shotScores[i];
       var cell = document.createElement("div");
       cell.className = "shot-cell";
-      if (v === 10) cell.classList.add("bull");
-      else if (v === 0) cell.classList.add("miss");
+      var cellRank = hitTierRankFor(v);
+      if (cellRank === 3) cell.classList.add("perfect");
+      else if (cellRank === 2) cell.classList.add("great");
+      else if (cellRank === 0) cell.classList.add("miss");
       var no = document.createElement("span");
       no.className = "shot-cell-no";
       no.textContent = (i + 1);
@@ -664,6 +748,10 @@
     finalScoreEl.textContent = score;
     finalOfMaxEl.textContent = "/ " + (ARROWS_PER_ROUND * 10);
     renderShotBreakdown();
+    lastBestHitTierKey = hitTierKeyForRank(bestHitTierRank);
+    bestHitValueEl.textContent = t(lastBestHitTierKey);
+    perfectCountValueEl.textContent = perfectCount;
+    maxComboValueEl.textContent = maxCombo;
     bestScoreValueEl.textContent = isNewRecord ? score : prevBest;
     newRecordBannerEl.classList.toggle("hidden", !isNewRecord);
     lastRatingKey = ratingKeyFor(score);
