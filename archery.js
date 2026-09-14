@@ -6,7 +6,7 @@
   var FLIGHT_MS = 340;          // arrow travel time
   var SWAY_SPEED_A = 1.7;       // rad/s, horizontal wobble
   var SWAY_SPEED_B = 2.3;       // rad/s, vertical wobble
-  var SWAY_AMPLITUDE = 0.38;    // fraction of the target radius each axis drifts
+  var SWAY_AMPLITUDE = 0.28;    // fraction of the target radius each axis drifts
   var RESET_AFTER_SHOT_MS = 520;
 
   // ---------- i18n ----------
