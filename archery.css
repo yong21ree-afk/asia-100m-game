@@ -230,11 +230,10 @@ html, body {
 
 .wind-arrow {
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   line-height: 1;
   color: var(--neon-yellow);
   text-shadow: 0 0 6px var(--neon-yellow);
-  transition: transform 0.25s ease-out;
 }
 
 .wind-strength {

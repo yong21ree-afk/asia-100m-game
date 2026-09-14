@@ -6,18 +6,27 @@
   var FLIGHT_MS = 340;          // arrow travel time
   var SWAY_SPEED_A = 1.7;       // rad/s, horizontal wobble
   var SWAY_SPEED_B = 2.3;       // rad/s, vertical wobble
-  var SWAY_AMPLITUDE = 0.28;    // fraction of the target radius each axis drifts
   var RESET_AFTER_SHOT_MS = 520;
+
+  // Aim sway ramps up shot by shot: barely-there on shot 1 (so a first-time
+  // player can land an easy arrow) up to a real test of nerve on shot 5.
+  var SWAY_AMPLITUDE_MIN = 0.1;   // fraction of the target radius, shot 1
+  var SWAY_AMPLITUDE_MAX = 0.32;  // fraction of the target radius, last shot
 
   // Wind: pushes the arrow's landing point off the aimed spot, like a real
   // crosswind. A new direction/strength is rolled before each shot and shown
-  // on the wind-indicator badge so the player can aim to compensate.
+  // on the wind-indicator badge (snapped to 8 compass directions) so the
+  // player can aim to compensate - what you see is exactly what happens.
+  // Like the sway, its strength ramps up over the course of the round.
   var WIND_TIERS = [
-    { frac: 0.05, key: "windLight" },
-    { frac: 0.09, key: "windModerate" },
-    { frac: 0.13, key: "windStrong" }
+    { frac: 0.04, key: "windLight" },
+    { frac: 0.08, key: "windModerate" },
+    { frac: 0.12, key: "windStrong" }
   ];
-  var WIND_JITTER = 0.02; // +/- fraction added on top of the tier's base strength
+  var WIND_JITTER = 0.015;  // +/- fraction added on top of the tier's base strength
+  var WIND_SCALE_MIN = 0.3; // shot 1: wind is barely noticeable
+  var WIND_SCALE_MAX = 1.0; // last shot: full strength
+  var WIND_ARROWS = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"]; // 8 compass sectors, starting at 0deg = east (right)
 
   // ---------- i18n ----------
   var LANG_STORAGE_KEY = "archery_lang";
@@ -324,26 +333,43 @@
   var swayStart = 0;
   var rafId = null;
 
-  var windAngleRad = 0;   // direction the wind pushes the arrow, in radians (screen space)
+  var windAngleRad = 0;   // direction the wind pushes the arrow, snapped to 8 compass points
   var windMagFrac = 0;    // strength, as a fraction of the target radius
   var windStrengthKey = null;
+  var currentSwayAmpFrac = SWAY_AMPLITUDE_MIN; // this shot's hand-tremor amplitude
 
   function showOverlay(el) { el.classList.remove("hidden"); }
   function hideOverlay(el) { el.classList.add("hidden"); }
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  // How far into the 5-shot round we are: 0 on shot 1, 1 on the last shot.
+  // Both the hand tremor and the wind scale up along this curve, so the
+  // round quietly ramps from "anyone can land an arrow" to "nerve-wracking".
+  function getShotProgress() {
+    if (ARROWS_PER_ROUND <= 1) return 1;
+    var shotsTaken = clamp(ARROWS_PER_ROUND - arrowsLeft, 0, ARROWS_PER_ROUND - 1);
+    return shotsTaken / (ARROWS_PER_ROUND - 1);
+  }
 
   // ---------- Wind ----------
   function rollWind() {
-    windAngleRad = Math.random() * Math.PI * 2;
+    var progress = getShotProgress();
+    currentSwayAmpFrac = lerp(SWAY_AMPLITUDE_MIN, SWAY_AMPLITUDE_MAX, progress);
+
+    // Snap to one of 8 compass directions so the arrow glyph shown is exactly
+    // the direction applied - no guessing, just react to what you see.
+    windAngleRad = Math.floor(Math.random() * 8) * (Math.PI / 4);
     var tier = WIND_TIERS[Math.floor(Math.random() * WIND_TIERS.length)];
-    windMagFrac = Math.max(0.02, tier.frac + (Math.random() - 0.5) * WIND_JITTER);
+    var windScale = lerp(WIND_SCALE_MIN, WIND_SCALE_MAX, progress);
+    windMagFrac = Math.max(0.01, (tier.frac + (Math.random() - 0.5) * WIND_JITTER) * windScale);
     windStrengthKey = tier.key;
     updateWindIndicator();
   }
 
   function updateWindIndicator() {
-    var deg = windAngleRad * 180 / Math.PI;
-    windArrowEl.style.transform = "rotate(" + deg + "deg)";
+    var deg = Math.round(windAngleRad * 180 / Math.PI / 45) % 8;
+    windArrowEl.textContent = WIND_ARROWS[(deg + 8) % 8];
     windStrengthEl.textContent = t(windStrengthKey);
   }
 
@@ -415,7 +441,7 @@
     if (phase !== "aiming") return;
     var geom = getTargetGeom();
     var elapsed = (now - swayStart) / 1000;
-    var amp = geom.r * SWAY_AMPLITUDE;
+    var amp = geom.r * currentSwayAmpFrac;
     var offX = Math.sin(elapsed * SWAY_SPEED_A) * amp + Math.sin(elapsed * SWAY_SPEED_A * 2.7) * amp * 0.35;
     var offY = Math.cos(elapsed * SWAY_SPEED_B) * amp + Math.cos(elapsed * SWAY_SPEED_B * 1.9) * amp * 0.35;
 
