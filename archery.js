@@ -9,6 +9,16 @@
   var SWAY_AMPLITUDE = 0.28;    // fraction of the target radius each axis drifts
   var RESET_AFTER_SHOT_MS = 520;
 
+  // Wind: pushes the arrow's landing point off the aimed spot, like a real
+  // crosswind. A new direction/strength is rolled before each shot and shown
+  // on the wind-indicator badge so the player can aim to compensate.
+  var WIND_TIERS = [
+    { frac: 0.05, key: "windLight" },
+    { frac: 0.09, key: "windModerate" },
+    { frac: 0.13, key: "windStrong" }
+  ];
+  var WIND_JITTER = 0.02; // +/- fraction added on top of the tier's base strength
+
   // ---------- i18n ----------
   var LANG_STORAGE_KEY = "archery_lang";
   var I18N = {
@@ -20,10 +30,14 @@
       scoreLabel: "점수",
       arrowsLabel: "화살",
       shootBtn: "발사",
+      windLabel: "바람",
+      windLight: "약풍",
+      windModerate: "중간바람",
+      windStrong: "강풍",
       aimHint: "마우스나 손가락으로 조준하세요",
       startTitle: "🏹 양궁",
       startInstruction: "화면 위에서 마우스나 손가락을 움직여 과녁을 조준하고, <b>발사</b> 버튼(PC는 화면 클릭도 가능)으로 화살을 쏘세요!",
-      startTip: "조준선이 미세하게 흔들려요. 한가운데(10점)에 가까울수록 높은 점수! 5발을 모두 쏘면 경기가 끝나고 결과가 나옵니다.",
+      startTip: "조준선이 미세하게 흔들려요. 화면 위쪽의 바람 화살표를 보고 바람이 부는 반대쪽으로 살짝 조준을 보정하세요! 한가운데(10점)에 가까울수록 높은 점수. 5발을 모두 쏘면 경기가 끝나고 결과가 나옵니다.",
       startBtn: "시작하기",
       resultTitle: "🎯 결과",
       newRecordBanner: "🏆 최고기록 경신!",
@@ -50,10 +64,14 @@
       scoreLabel: "Score",
       arrowsLabel: "Left",
       shootBtn: "Shoot",
+      windLabel: "Wind",
+      windLight: "Light",
+      windModerate: "Moderate",
+      windStrong: "Strong",
       aimHint: "Aim with your mouse or finger",
       startTitle: "🏹 Archery",
       startInstruction: "Move your mouse or finger over the range to aim, then hit <b>Shoot</b> (on PC you can also click the range) to loose an arrow!",
-      startTip: "Your aim drifts a little. The closer to the bullseye (10), the higher the score! The match ends after all 5 arrows.",
+      startTip: "Your aim drifts a little. Check the wind arrow at the top and aim slightly against it to compensate! The closer to the bullseye (10), the higher the score. The match ends after all 5 arrows.",
       startBtn: "Start",
       resultTitle: "🎯 Results",
       newRecordBanner: "🏆 NEW RECORD!",
@@ -108,6 +126,7 @@
 
     // rating text is set imperatively, so re-translate it on a language switch
     if (lastRatingKey) ratingTextEl.textContent = t(lastRatingKey);
+    if (windStrengthKey) windStrengthEl.textContent = t(windStrengthKey);
 
     try {
       window.localStorage.setItem(LANG_STORAGE_KEY, currentLang);
@@ -249,6 +268,8 @@
   var archerEl = document.getElementById("archer");
   var arrowFlyingEl = document.getElementById("arrowFlying");
   var aimTipEl = document.getElementById("aimTip");
+  var windArrowEl = document.getElementById("windArrow");
+  var windStrengthEl = document.getElementById("windStrength");
 
   var scoreValueEl = document.getElementById("scoreValue");
   var arrowsValueEl = document.getElementById("arrowsValue");
@@ -303,9 +324,28 @@
   var swayStart = 0;
   var rafId = null;
 
+  var windAngleRad = 0;   // direction the wind pushes the arrow, in radians (screen space)
+  var windMagFrac = 0;    // strength, as a fraction of the target radius
+  var windStrengthKey = null;
+
   function showOverlay(el) { el.classList.remove("hidden"); }
   function hideOverlay(el) { el.classList.add("hidden"); }
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  // ---------- Wind ----------
+  function rollWind() {
+    windAngleRad = Math.random() * Math.PI * 2;
+    var tier = WIND_TIERS[Math.floor(Math.random() * WIND_TIERS.length)];
+    windMagFrac = Math.max(0.02, tier.frac + (Math.random() - 0.5) * WIND_JITTER);
+    windStrengthKey = tier.key;
+    updateWindIndicator();
+  }
+
+  function updateWindIndicator() {
+    var deg = windAngleRad * 180 / Math.PI;
+    windArrowEl.style.transform = "rotate(" + deg + "deg)";
+    windStrengthEl.textContent = t(windStrengthKey);
+  }
 
   // ---------- Crowd ----------
   function buildCrowd() {
@@ -405,8 +445,9 @@
     aimLineEl.style.opacity = "0";
 
     var origin = getArcherOrigin();
-    var targetX = aimShown.x;
-    var targetY = aimShown.y;
+    var windGeom = getTargetGeom();
+    var targetX = aimShown.x + Math.cos(windAngleRad) * windMagFrac * windGeom.r;
+    var targetY = aimShown.y + Math.sin(windAngleRad) * windMagFrac * windGeom.r;
     var totalDx = targetX - origin.x;
     var totalDy = targetY - origin.y;
     var straightDist = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
@@ -496,6 +537,7 @@
       if (arrowsLeft <= 0) {
         endRound();
       } else {
+        rollWind();
         phase = "aiming";
         swayStart = performance.now();
         rafId = requestAnimationFrame(aimLoop);
@@ -539,6 +581,7 @@
     aimShown.y = pointer.y;
     updateReticle();
     aimLineEl.style.opacity = "0";
+    rollWind();
   }
 
   function startRound() {
